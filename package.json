@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "@devtheops/opencode-plugin-otel": "^0.9.0"
+    "@devtheops/opencode-plugin-otel": "^0.9.0",
+    "@primeuix/themes": "^2.0.3",
+    "primeicons": "^7.0.0",
+    "primeng": "^21.1.8"
   }
 }

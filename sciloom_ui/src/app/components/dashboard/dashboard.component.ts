@@ -103,6 +103,9 @@ export class DashboardComponent implements OnInit {
       case 'CREATED':
         return 'info';
       case 'CLAIM_EXTRACTION':
+      case 'CODE_EXECUTION':
+      case 'CLAIM_REPLICATION':
+      case 'DTREG_GENERATION':
       case 'RUNNING':
         return 'warn';
       case 'FAILED':

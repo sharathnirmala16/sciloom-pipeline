@@ -8,7 +8,7 @@ export interface Job {
   repoFileName?: string;
   dataSource: 'zip' | 'in_repo';
   dataFileName?: string;
-  status: 'CREATED' | 'PROVISIONING' | 'PROVISIONED' | 'FAILED' | 'CLAIM_EXTRACTION' | 'RUNNING' | 'COMPLETED';
+  status: 'CREATED' | 'PROVISIONING' | 'PROVISIONED' | 'FAILED' | 'CLAIM_EXTRACTION' | 'CODE_EXECUTION' | 'CLAIM_REPLICATION' | 'DTREG_GENERATION' | 'RUNNING' | 'COMPLETED';
   currentStage: 'PROVISIONING' | 'CLAIM_EXTRACTION' | 'CODE_EXECUTION' | 'CLAIM_REPLICATION' | 'DTREG_GENERATION';
   sandboxId?: string;
   createdAt: string;

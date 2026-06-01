@@ -12,6 +12,7 @@ class AgentService:
         """
         # Execute the agent command: opencode run --agent claim-extraction-agent "Extract the quantitative claims from this paper." -f RESEARCH_PAPER.md
         # Run in job_dir where RESEARCH_PAPER.md resides
+        paper_path = job_dir / "RESEARCH_PAPER.md"
         cmd = [
             "opencode",
             "run",
@@ -19,7 +20,7 @@ class AgentService:
             "claim-extraction-agent",
             "Extract the quantitative claims from this paper.",
             "-f",
-            "RESEARCH_PAPER.md"
+            str(paper_path)
         ]
         
         await log_callback(f"Executing command: {' '.join(cmd)}")

@@ -2,7 +2,7 @@
 
 ## Stage 1 & 2 UI & Backend Completed 🚀
 **Stage 1 (Provisioning, OCR Extraction & Job Setup)** and **Stage 2 (Claim Extraction)** have been fully completed!
-- **Frontend**: Stage 1 UI is finished in Angular 21 with PrimeNG v21 and Tailwind CSS layouts. Integrates native LaTeX math rendering and Markdown parsing.
+- **Frontend**: Stage 1 & 2 UI finished in Angular 21 with PrimeNG v21 and Tailwind CSS layouts. Integrates native LaTeX math rendering, Markdown parsing, and a full claims editor with edit/add/remove/save functionality.
 - **Backend**: Stage 1 & 2 fully implemented using FastAPI, SQLAlchemy 2.0 ORM, Alembic 1.18 migrations, Honker (async SQLite NOTIFY/LISTEN queue worker orchestration), and OpenCode LLM Claim Extraction agent subprocess pipeline.
 
 ---
@@ -20,6 +20,54 @@ All components are located in the [src/app/components](file:///home/sharath/Docu
   - **OCR Re-extraction controls**: Integrated with a PrimeNG confirm dialog to safely trigger backend OCR retries.
   - See [ocr-preview.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/ocr-preview/ocr-preview.component.ts).
 - **`FileExplorerComponent`**: Recursive file explorer for repository trees. See [file-explorer.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/file-explorer/file-explorer.component.ts).
+- **`ClaimsEditorComponent`**: Full-featured claims management UI for Stage 2 human-in-the-loop review. Features:
+  - **Inline editing**: Textarea-based claim text editing with modification tracking (amber "Modified" badge).
+  - **Add/Remove claims**: Add new user-source claims (indigo "New" badge), delete with PrimeNG confirm dialog.
+  - **Save to backend**: PUT `ClaimsSyncRequest` payload wrapping `{ claims: [...] }` to `PUT /api/jobs/{id}/claims`.
+  - **Advance to Stage 3**: Button with unsaved-changes guard — blocks advancement until claims are saved.
+  - **Optimistic state**: Local `EditableClaim` signal array with `_isNew`, `_isModified`, `_isDeleted` flags for safe partial sync.
+  - See [claims-editor.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/claims-editor/claims-editor.component.ts).
+
+---
+
+## 🎯 Stage 2 UI: Claims Editor Integration
+
+### Component Hierarchy
+```
+JobDetailsComponent (parent)
+  └── ClaimsEditorComponent (child, embedded in CLAIM_EXTRACTION completed view)
+```
+
+### Stage 2 Views in `job-details.component.html`
+The `CLAIM_EXTRACTION` stage now has dedicated views for all four pipeline states:
+- **Running**: Live SSE terminal with spinner, agent log stream, and "Return to Dashboard" link.
+- **Completed**: `<app-claims-editor>` with full edit/add/remove/save/advance capabilities.
+- **Failed**: Error banner with claim extraction error log, retry button.
+- **Pending**: Placeholder waiting for Stage 1 completion.
+
+### JobService Methods Added
+- **`advanceToStage3(jobId)`**: Optimistic status update to `CODE_EXECUTION`, POST `/jobs/{id}/advance`, refresh + SSE reconnect.
+- **`refreshClaims(jobId)`**: Reloads claims from backend after editor saves.
+- **`advanceToStage2(jobId)`**: Now reconnects SSE logs after advancing to capture agent output.
+
+### Type Updates
+- **`Job.status`** expanded to include `CODE_EXECUTION`, `CLAIM_REPLICATION`, `DTREG_GENERATION` — matching the 5-stage pipeline lifecycle.
+- **`getStatusSeverity()`** and **`getStatusBadgeSeverity()`** updated in both Dashboard and JobDetails to handle new status values.
+
+### Backend Fixes
+- **`agent_service.py`**: Changed `-f RESEARCH_PAPER.md` (relative) to `-f str(paper_path)` (absolute) to fix OpenCode's subprocess path resolution — OpenCode resolves `-f` relative to its own context, not the subprocess `cwd`.
+- **`job_service.py`**: Added explicit `RESEARCH_PAPER.md` existence check before invoking the agent, providing a clear `FileNotFoundError` if provisioning is incomplete.
+
+### Claims Sync API Contract
+The `PUT /api/jobs/{id}/claims` endpoint expects a `ClaimsSyncRequest` body:
+```json
+{
+  "claims": [
+    { "id": "claim_1", "claimText": "...", "source": "agent", "metrics": "...", "evidence": "..." }
+  ]
+}
+```
+The frontend wraps the payload accordingly. New claims omit `id` (backend generates one). Deleted claims are omitted from the array (backend removes them).
 
 ---
 

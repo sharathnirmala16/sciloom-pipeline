@@ -173,7 +173,6 @@ export class JobService {
    * Transitions job to Stage 2: Claim Extraction.
    */
   public advanceToStage2(jobId: string): void {
-    // Update local state temporarily to feel fast
     this._jobs.update(prev =>
       prev.map(j =>
         j.id === jobId ? { ...j, status: 'CLAIM_EXTRACTION', currentStage: 'CLAIM_EXTRACTION', updatedAt: new Date().toISOString() } : j
@@ -183,10 +182,43 @@ export class JobService {
     this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
       next: () => {
         this.refreshJobStatusAndStages(jobId);
+        this.connectLogsSse(jobId);
       },
       error: err => {
         console.error('Failed to advance job to stage 2:', err);
         this.refreshJobStatusAndStages(jobId);
+      }
+    });
+  }
+
+  /**
+   * Transitions job to Stage 3: Code Execution.
+   */
+  public advanceToStage3(jobId: string): void {
+    this._jobs.update(prev =>
+      prev.map(j =>
+        j.id === jobId ? { ...j, status: 'CODE_EXECUTION', currentStage: 'CODE_EXECUTION', updatedAt: new Date().toISOString() } : j
+      )
+    );
+
+    this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
+      next: () => {
+        this.refreshJobStatusAndStages(jobId);
+      },
+      error: err => {
+        console.error('Failed to advance job to stage 3:', err);
+        this.refreshJobStatusAndStages(jobId);
+      }
+    });
+  }
+
+  /**
+   * Reloads only the claims for a given job from the backend.
+   */
+  public refreshClaims(jobId: string): void {
+    this.http.get<Claim[]>(`${this.apiUrl}/jobs/${jobId}/claims`).subscribe({
+      next: claims => {
+        this._claims.update(prev => ({ ...prev, [jobId]: claims }));
       }
     });
   }

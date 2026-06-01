@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { JobService } from '../../services/job.service';
 import { FileExplorerComponent } from '../file-explorer/file-explorer.component';
 import { OCRPreviewComponent } from '../ocr-preview/ocr-preview.component';
+import { ClaimsEditorComponent } from '../claims-editor/claims-editor.component';
 
 // PrimeNG Imports
 import { ButtonModule } from 'primeng/button';
@@ -25,6 +26,7 @@ interface TimelineItem {
     RouterLink,
     FileExplorerComponent,
     OCRPreviewComponent,
+    ClaimsEditorComponent,
     ButtonModule,
     TimelineModule,
     ProgressBarModule,
@@ -158,6 +160,14 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
     this.jobService.advanceToStage2(this.jobId());
   }
 
+  onAdvanceToStage3(): void {
+    this.jobService.advanceToStage3(this.jobId());
+  }
+
+  onClaimsSaved(): void {
+    this.jobService.refreshClaims(this.jobId());
+  }
+
   /** Called when the OCR preview confirms a retry — switch UI to terminal view. */
   onOcrRetryStarted(): void {
     this.isOcrRetrying.set(true);
@@ -211,6 +221,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       case 'CREATED':
         return 'info';
       case 'CLAIM_EXTRACTION':
+      case 'CODE_EXECUTION':
+      case 'CLAIM_REPLICATION':
+      case 'DTREG_GENERATION':
       case 'RUNNING':
         return 'warn';
       case 'FAILED':

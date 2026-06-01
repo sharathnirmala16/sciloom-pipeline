@@ -473,7 +473,12 @@ class JobService:
             await self.add_log(job_id, "INFO", f"Starting Stage 2 claim extraction for job {job_id}...", db=local_db)
             
             job_dir = settings.jobs_dir / f"job_{job_id}"
-            
+
+            paper_file = job_dir / "RESEARCH_PAPER.md"
+            if not paper_file.is_file():
+                raise FileNotFoundError(f"RESEARCH_PAPER.md not found in {job_dir}. Has Stage 1 provisioning completed?")
+            await self.add_log(job_id, "INFO", f"Using paper at: {paper_file}", db=local_db)
+
             # Helper log callback
             async def log_callback(message: str, level: str = "INFO"):
                 await self.add_log(job_id, level, message, db=local_db)

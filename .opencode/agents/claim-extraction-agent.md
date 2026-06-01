@@ -3,7 +3,7 @@ description: Quantitative claim extraction specialist. Reads a markdown paper an
 mode: primary
 model: google/gemini-3.5-flash
 reasoningEffort: medium
-temperature: 0.1
+temperature: 1
 permission:
   read: allow
   edit:

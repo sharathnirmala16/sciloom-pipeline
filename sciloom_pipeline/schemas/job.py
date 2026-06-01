@@ -49,6 +49,9 @@ class JobResponse(BaseModel):
     data_file_name: Optional[str] = Field(None, alias="dataFileName")
     status: str
     current_stage: str = Field(..., alias="currentStage")
+    sandbox_id: Optional[str] = Field(None, alias="sandboxId")
+    opencode_session_id: Optional[str] = Field(None, alias="opencodeSessionId")
+    opencode_server_url: Optional[str] = Field(None, alias="opencodeServerUrl")
     created_at: str = Field(..., alias="createdAt")
     updated_at: str = Field(..., alias="updatedAt")
     ocr_page_char_counts: Optional[List[int]] = Field(None, alias="ocrPageCharCounts")

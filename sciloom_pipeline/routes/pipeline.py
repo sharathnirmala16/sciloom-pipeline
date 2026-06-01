@@ -9,6 +9,7 @@ from sciloom_pipeline.services.job_service import job_service
 from sciloom_pipeline.services.queue_service import queue_service
 from sciloom_pipeline.db.database import get_db
 from sciloom_pipeline.db import models
+from sciloom_pipeline.schemas.sandbox import SandboxInfoResponse
 
 router = APIRouter(prefix="/jobs/{job_id}", tags=["Pipeline Orchestration"])
 
@@ -129,6 +130,9 @@ async def advance_stage(job_id: str, db: Session = Depends(get_db)):
                 else:
                     queue_service.enqueue_job_task("claim_extraction", job_id)
                     await job_service.add_log(job_id, "INFO", "Enqueued Claim Extraction task for processing...", db=db)
+            elif next_stage == "CODE_EXECUTION":
+                queue_service.enqueue_job_task("code_execution", job_id)
+                await job_service.add_log(job_id, "INFO", "Enqueued Code Execution task for sandbox configuration...", db=db)
 
         else:
             # All stages completed
@@ -235,3 +239,24 @@ async def stream_logs(job_id: str, db: Session = Depends(get_db)):
             queue_service.unregister_log_listener(job_id, queue)
 
     return StreamingResponse(log_generator(), media_type="text/event-stream")
+
+@router.get("/sandbox", response_model=SandboxInfoResponse)
+async def get_sandbox(job_id: str, db: Session = Depends(get_db)):
+    """Retrieves connection details and status of the sandbox for a job."""
+    info = await job_service.get_sandbox_info(job_id, db=db)
+    if not info:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail=f"Sandbox info not found for job {job_id}."
+        )
+    return info
+
+@router.delete("/sandbox")
+async def delete_sandbox(job_id: str, db: Session = Depends(get_db)):
+    """Explicitly requests deletion of the job's sandbox container."""
+    job = await job_service.get_job_by_id(job_id, db=db)
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Job {job_id} not found.")
+        
+    await job_service.delete_sandbox(job_id, db=db)
+    return {"status": "success", "message": "Sandbox deletion completed."}

@@ -471,8 +471,24 @@
 
         }
 
-        <!-- ================= OTHER STAGES: CODE_EXECUTION, CLAIM_REPLICATION, DTREG_GENERATION ================= -->
-        @if (selectedStageName() !== 'PROVISIONING' && selectedStageName() !== 'CLAIM_EXTRACTION') {
+        <!-- ================= STAGE 3: CODE_EXECUTION ================= -->
+        @if (selectedStageName() === 'CODE_EXECUTION' && job()) {
+          <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+            <app-code-execution
+              [jobId]="jobId()"
+              [job]="job()!"
+              [stageStatus]="getStageStatus('CODE_EXECUTION')"
+              [errorLog]="codeExecutionStage()?.errorLog ?? null"
+              [logs]="logs()"
+              (retryRequested)="onRetryCodeExecution()"
+              (advanceToStage4)="onAdvanceToStage4()"
+              (sandboxDeleted)="onSandboxDeleted()"
+            />
+          </div>
+        }
+
+        <!-- ================= OTHER STAGES: CLAIM_REPLICATION, DTREG_GENERATION ================= -->
+        @if (selectedStageName() !== 'PROVISIONING' && selectedStageName() !== 'CLAIM_EXTRACTION' && selectedStageName() !== 'CODE_EXECUTION') {
 
           <!-- Stage Status: running -->
           @if (getStageStatus(selectedStageName()) === 'running') {
@@ -621,7 +637,7 @@
           <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
             <h3 class="text-xs font-bold text-slate-950 uppercase tracking-wider">Docker Sandbox</h3>
             <span class="relative flex h-2 w-2">
-              @if (job()?.status === 'PROVISIONED' || job()?.status === 'FAILED' || job()?.status === 'CLAIM_EXTRACTION') {
+              @if (job()?.sandboxId) {
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               } @else {
@@ -633,16 +649,16 @@
           <div class="space-y-3.5 text-xs">
             <div class="flex justify-between">
               <span class="text-slate-400">Sandbox Status:</span>
-              @if (job()?.status === 'PROVISIONED' || job()?.status === 'FAILED' || job()?.status === 'CLAIM_EXTRACTION') {
+              @if (job()?.sandboxId) {
                 <span class="font-bold text-emerald-600">Active</span>
               } @else {
                 <span class="font-semibold text-slate-400">Offline</span>
               }
             </div>
-            @if (job()?.status === 'PROVISIONED' || job()?.status === 'FAILED' || job()?.status === 'CLAIM_EXTRACTION') {
+            @if (job()?.sandboxId) {
               <div class="flex justify-between">
                 <span class="text-slate-400">Sandbox ID:</span>
-                <span class="font-mono text-slate-600">sbx-{{ jobId() }}</span>
+                <span class="font-mono text-slate-600 select-all">{{ job()?.sandboxId }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-slate-400">Isolation Layer:</span>

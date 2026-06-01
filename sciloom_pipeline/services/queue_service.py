@@ -90,6 +90,8 @@ class QueueService:
                         await job_service.run_ocr_retry(job_id, db=session)
                     elif task_type == "claim_extraction":
                         await job_service.run_claim_extraction(job_id, db=session)
+                    elif task_type == "code_execution":
+                        await job_service.run_code_execution(job_id, db=session)
                     else:
                         logger.warning(f"Unknown task type: {task_type}")
                     

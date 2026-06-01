@@ -3,7 +3,7 @@ description: Claim replication agent. Deploys an isolated Docker sandbox, copies
 mode: primary
 model: google/gemini-3.5-flash
 reasoningEffort: medium
-temperature: 0.2
+temperature: 1
 permission:
   read: allow
   edit:

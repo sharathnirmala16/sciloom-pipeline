@@ -1,7 +1,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
-import { Job, JobStage, Claim, JobLog } from '../types/job.types';
+import { Job, JobStage, Claim, JobLog, SandboxInfo } from '../types/job.types';
 
 @Injectable({
   providedIn: 'root'
@@ -204,9 +204,78 @@ export class JobService {
     this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
       next: () => {
         this.refreshJobStatusAndStages(jobId);
+        this.connectLogsSse(jobId);
       },
       error: err => {
         console.error('Failed to advance job to stage 3:', err);
+        this.refreshJobStatusAndStages(jobId);
+      }
+    });
+  }
+
+  /**
+   * Fetches sandbox details for a job.
+   */
+  public getSandboxInfo(jobId: string): Observable<SandboxInfo> {
+    return this.http.get<SandboxInfo>(`${this.apiUrl}/jobs/${jobId}/sandbox`);
+  }
+
+  /**
+   * Deletes the sandbox container for a job.
+   */
+  public deleteSandbox(jobId: string): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/jobs/${jobId}/sandbox`).pipe(
+      tap(() => {
+        this.refreshJobStatusAndStages(jobId);
+      })
+    );
+  }
+
+  /**
+   * Retries a specific active stage for a job.
+   */
+  public retryCurrentStage(jobId: string, stageName: string): void {
+    // Reset local state first to feel responsive
+    this._jobs.update(prev =>
+      prev.map(j => (j.id === jobId ? { ...j, status: stageName as any, updatedAt: new Date().toISOString() } : j))
+    );
+    this._stages.update(prev => {
+      const stagesList = prev[jobId] || [];
+      return {
+        ...prev,
+        [jobId]: stagesList.map(s => (s.stageName === stageName ? { ...s, status: 'running' } : s))
+      };
+    });
+    this._logs.update(prev => ({ ...prev, [jobId]: [] }));
+
+    this.http.post(`${this.apiUrl}/jobs/${jobId}/retry`, {}).subscribe({
+      next: () => {
+        this.connectLogsSse(jobId);
+      },
+      error: err => {
+        console.error(`Failed to retry job stage ${stageName}:`, err);
+        this.refreshJobStatusAndStages(jobId);
+      }
+    });
+  }
+
+  /**
+   * Transitions job to Stage 4: Claim Replication.
+   */
+  public advanceToStage4(jobId: string): void {
+    this._jobs.update(prev =>
+      prev.map(j =>
+        j.id === jobId ? { ...j, status: 'CLAIM_REPLICATION', currentStage: 'CLAIM_REPLICATION', updatedAt: new Date().toISOString() } : j
+      )
+    );
+
+    this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
+      next: () => {
+        this.refreshJobStatusAndStages(jobId);
+        this.connectLogsSse(jobId);
+      },
+      error: err => {
+        console.error('Failed to advance job to stage 4:', err);
         this.refreshJobStatusAndStages(jobId);
       }
     });

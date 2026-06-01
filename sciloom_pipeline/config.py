@@ -19,4 +19,10 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     project_name: str = "SciLoom Pipeline"
 
+    # OpenCode & Sandbox configuration
+    opencode_server_url: str = "http://localhost:4096"
+    sandbox_memory_limit: str = "4g"
+    sandbox_cpus: int = 0
+
 settings = Settings()
+

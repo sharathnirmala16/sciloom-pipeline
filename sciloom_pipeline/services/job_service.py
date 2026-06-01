@@ -548,6 +548,170 @@ class JobService:
             if db is None:
                 local_db.close()
 
+    # --- Code Execution: execute Stage 3 environment setup ---
+    async def run_code_execution(self, job_id: str, db: Optional[Session] = None) -> None:
+        """Executes Stage 3: Code Execution (sets up Docker sandbox, runs environment configuration agent)."""
+        local_db = db or SessionLocal()
+        try:
+            # Fetch job via Session
+            job = local_db.query(models.Job).filter(models.Job.id == job_id).first()
+            if not job:
+                raise ValueError(f"Job {job_id} not found in database.")
+
+            # Update statuses
+            job.status = "CODE_EXECUTION"
+            job.updated_at = datetime.now(timezone.utc)
+            
+            stage = local_db.query(models.Stage).filter(
+                models.Stage.job_id == job_id,
+                models.Stage.stage_name == "CODE_EXECUTION"
+            ).first()
+            if stage:
+                stage.status = "running"
+                stage.started_at = datetime.now().isoformat()
+                stage.updated_at = datetime.now(timezone.utc)
+            
+            local_db.commit()
+
+            await self.add_log(job_id, "INFO", f"Starting Stage 3 code execution environment configuration for job {job_id}...", db=local_db)
+            
+            job_dir = settings.jobs_dir / f"job_{job_id}"
+            repo_dir = job_dir / "REPO"
+            if not repo_dir.is_dir():
+                raise FileNotFoundError(f"Repository directory REPO not found in {job_dir}. Has Stage 1 provisioning completed?")
+
+            # 1. Create Docker Sandbox via sandbox_service
+            await self.add_log(job_id, "INFO", "Initializing Docker sandbox environment...", db=local_db)
+            from sciloom_pipeline.services.sandbox_service import sandbox_service
+            sandbox_name = await sandbox_service.create_sandbox(job_id, repo_dir)
+            
+            # Store sandbox_id on Job
+            job.sandbox_id = sandbox_name
+            local_db.commit()
+            
+            await self.add_log(job_id, "INFO", f"Docker sandbox '{sandbox_name}' created successfully.", db=local_db)
+
+            # 2. Copy RESEARCH_PAPER.md to sandbox
+            paper_file = job_dir / "RESEARCH_PAPER.md"
+            if paper_file.is_file():
+                await self.add_log(job_id, "INFO", "Copying RESEARCH_PAPER.md to sandbox...", db=local_db)
+                await sandbox_service.copy_to_sandbox(sandbox_name, paper_file, str(repo_dir / "RESEARCH_PAPER.md"))
+
+            # Helper log callback
+            async def log_callback(message: str, level: str = "INFO"):
+                await self.add_log(job_id, level, message, db=local_db)
+
+            # 3. Invoke agent_service to run the Code Execution Agent in sandbox
+            await self.add_log(job_id, "INFO", "Launching Code Execution Agent inside the sandbox...", db=local_db)
+            from sciloom_pipeline.services.agent_service import agent_service
+            agent_result = await agent_service.run_code_execution_agent(job_id, sandbox_name, log_callback)
+            
+            # Store session details if found
+            session_id = agent_result.get("session_id")
+            if session_id:
+                job.opencode_session_id = session_id
+                job.opencode_server_url = settings.opencode_server_url
+                local_db.commit()
+                
+            if not agent_result.get("success"):
+                err_msg = agent_result.get("error_details") or "Code execution agent failed."
+                raise RuntimeError(err_msg)
+
+            # Update stage and job status on success
+            job.status = "CODE_EXECUTION"
+            if stage:
+                stage.status = "completed"
+                stage.completed_at = datetime.now().isoformat()
+                stage.updated_at = datetime.now(timezone.utc)
+                # Store output json
+                stage.output_json = json.dumps({
+                    "status": "success",
+                    "sandboxId": sandbox_name,
+                    "opencodeSessionId": session_id,
+                    "opencodeServerUrl": settings.opencode_server_url
+                })
+            
+            local_db.commit()
+            await self.add_log(job_id, "INFO", "Stage 3 code execution setup successfully completed. Environment is ready.", db=local_db)
+            
+        except Exception as e:
+            local_db.rollback()
+            # Store sandbox access details on failure stage.sandbox_info
+            stage = local_db.query(models.Stage).filter(
+                models.Stage.job_id == job_id,
+                models.Stage.stage_name == "CODE_EXECUTION"
+            ).first()
+            if stage:
+                stage.sandbox_info = json.dumps({
+                    "sandboxId": f"sciloom-job-{job_id}",
+                    "connectionCommand": f"sbx exec sciloom-job-{job_id} -- bash"
+                })
+                local_db.commit()
+                
+            await self.mark_stage_failed(job_id, "CODE_EXECUTION", str(e), db=local_db)
+            raise e
+        finally:
+            if db is None:
+                local_db.close()
+
+    async def get_sandbox_info(self, job_id: str, db: Optional[Session] = None) -> Optional[Dict[str, Any]]:
+        """Returns details about the sandbox container for this job."""
+        local_db = db or SessionLocal()
+        try:
+            job = local_db.query(models.Job).filter(models.Job.id == job_id).first()
+            if not job or not job.sandbox_id:
+                return None
+
+            from sciloom_pipeline.services.sandbox_service import sandbox_service
+            sbx_status = await sandbox_service.get_sandbox_status(job.sandbox_id)
+            
+            status = "not_found"
+            if sbx_status:
+                status = "running"
+
+            return {
+                "sandboxId": job.sandbox_id,
+                "sandboxName": job.sandbox_id,
+                "status": status,
+                "connectionCommand": f"sbx exec {job.sandbox_id} -- bash",
+                "opencodeSessionId": job.opencode_session_id,
+                "opencodeServerUrl": job.opencode_server_url
+            }
+        finally:
+            if db is None:
+                local_db.close()
+
+    async def delete_sandbox(self, job_id: str, db: Optional[Session] = None) -> None:
+        """Explicitly deletes the Docker sandbox for a job."""
+        local_db = db or SessionLocal()
+        try:
+            job = local_db.query(models.Job).filter(models.Job.id == job_id).first()
+            if not job or not job.sandbox_id:
+                await self.add_log(job_id, "WARN", "No sandbox exists to delete.", db=local_db)
+                return
+
+            await self.add_log(job_id, "INFO", f"Deleting Docker sandbox: {job.sandbox_id}...", db=local_db)
+            from sciloom_pipeline.services.sandbox_service import sandbox_service
+            
+            try:
+                await sandbox_service.remove_sandbox(job.sandbox_id)
+                await self.add_log(job_id, "INFO", f"Docker sandbox {job.sandbox_id} successfully deleted.", db=local_db)
+            except Exception as e:
+                await self.add_log(job_id, "WARN", f"Failed to delete sandbox container (it may already be removed): {e}", db=local_db)
+            
+            # Nullify fields on Job
+            job.sandbox_id = None
+            job.opencode_session_id = None
+            job.opencode_server_url = None
+            local_db.commit()
+            
+        except Exception as e:
+            local_db.rollback()
+            raise e
+        finally:
+            if db is None:
+                local_db.close()
+
     # --- Update OCR Markdown: save edited content and recalculate page counts ---
     async def update_ocr_markdown(self, job_id: str, markdown: str, db: Optional[Session] = None) -> None:
         """Overwrites RESEARCH_PAPER.md with the provided markdown and recalculates OCR page counts."""
@@ -584,6 +748,9 @@ class JobService:
             "dataFileName": f"{job.id}_data.zip" if job.data_source == "zip" else None,
             "status": job.status,
             "currentStage": job.current_stage,
+            "sandboxId": job.sandbox_id,
+            "opencodeSessionId": job.opencode_session_id,
+            "opencodeServerUrl": job.opencode_server_url,
             "createdAt": job.created_at.isoformat() if job.created_at else "",
             "updatedAt": job.updated_at.isoformat() if job.updated_at else "",
             "ocrPageCharCounts": ocr_counts

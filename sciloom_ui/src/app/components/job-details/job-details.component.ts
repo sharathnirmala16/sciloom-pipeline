@@ -5,6 +5,7 @@ import { JobService } from '../../services/job.service';
 import { FileExplorerComponent } from '../file-explorer/file-explorer.component';
 import { OCRPreviewComponent } from '../ocr-preview/ocr-preview.component';
 import { ClaimsEditorComponent } from '../claims-editor/claims-editor.component';
+import { CodeExecutionComponent } from '../code-execution/code-execution.component';
 
 // PrimeNG Imports
 import { ButtonModule } from 'primeng/button';
@@ -27,6 +28,7 @@ interface TimelineItem {
     FileExplorerComponent,
     OCRPreviewComponent,
     ClaimsEditorComponent,
+    CodeExecutionComponent,
     ButtonModule,
     TimelineModule,
     ProgressBarModule,
@@ -130,6 +132,7 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   logs = computed(() => this.jobService.getLogsForJob(this.jobId())());
   ocrMarkdown = computed(() => this.jobService.getSimulatedOcrMarkdown(this.jobId()));
   repoFiles = computed(() => this.jobService.getSimulatedRepoFiles(this.jobId()));
+  codeExecutionStage = computed(() => this.stages().find(s => s.stageName === 'CODE_EXECUTION') || null);
 
   // Simulated Stage 1 progress metrics
   progressPercent = computed(() => {
@@ -166,6 +169,18 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
 
   onClaimsSaved(): void {
     this.jobService.refreshClaims(this.jobId());
+  }
+
+  onRetryCodeExecution(): void {
+    this.jobService.retryCurrentStage(this.jobId(), 'CODE_EXECUTION');
+  }
+
+  onAdvanceToStage4(): void {
+    this.jobService.advanceToStage4(this.jobId());
+  }
+
+  onSandboxDeleted(): void {
+    this.jobService.loadJobDetails(this.jobId());
   }
 
   /** Called when the OCR preview confirms a retry — switch UI to terminal view. */

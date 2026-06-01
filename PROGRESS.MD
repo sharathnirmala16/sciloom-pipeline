@@ -1,36 +1,29 @@
 # SciLoom Pipeline Project Progress & Handover Note
 
-## Stage 1 & 2 UI & Backend Completed 🚀
-**Stage 1 (Provisioning, OCR Extraction & Job Setup)** and **Stage 2 (Claim Extraction)** have been fully completed!
-- **Frontend**: Stage 1 & 2 UI finished in Angular 21 with PrimeNG v21 and Tailwind CSS layouts. Integrates native LaTeX math rendering, Markdown parsing, and a full claims editor with edit/add/remove/save functionality.
-- **Backend**: Stage 1 & 2 fully implemented using FastAPI, SQLAlchemy 2.0 ORM, Alembic 1.18 migrations, Honker (async SQLite NOTIFY/LISTEN queue worker orchestration), and OpenCode LLM Claim Extraction agent subprocess pipeline.
+## Stage 1, 2 & 3 Backend & UI Progress 🚀
+
+All three initial stages of the SciLoom Pipeline are now fully implemented:
+*   **Stage 1 (Provisioning, OCR Extraction & Job Setup)**: Fully completed (UI + Backend).
+*   **Stage 2 (Claim Extraction)**: Fully completed (UI + Backend).
+*   **Stage 3 (Code Execution)**: Fully completed (UI + Backend).
 
 ---
 
-## 🎨 Implemented UI Components
+## 🎨 Frontend UI Components (Implemented)
 
 All components are located in the [src/app/components](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components) directory:
 - **`AppHeaderComponent`**: The shared top navigation bar and branding logo. See [app-header.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/app-header/app-header.component.ts).
 - **`DashboardComponent`**: Displays registered jobs with PrimeNG Tables, custom pagination, search filters, and statistics summaries. See [dashboard.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/dashboard/dashboard.component.ts) and [dashboard.component.html](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/dashboard/dashboard.component.html).
 - **`JobFormComponent`**: A Reactive form within a Modal Dialog for creating a new job. Handles validation of required inputs and file uploads. See [job-form.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-form/job-form.component.ts).
-- **`JobDetailsComponent`**: Main details dashboard displaying the 5-stage timeline, live log streaming feeds, and a tabbed details layout. Integrates an `isOcrRetrying` signal that seamlessly switches the view back to the streaming log terminal during a retry, hiding the initial progress bar. See [job-details.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/job-details.component.ts).
-- **`OCRPreviewComponent`**: Markdown viewer and editor for research papers. Includes:
-  - **Page Density Grid**: Renders individual page boxes color-coded by character counts (green for high density, amber for low density, and rose for empty pages) with interactive tooltip summaries.
-  - **Raw Markdown Editor**: Switchable `<textarea>` panel allowing users to edit and save corrected text directly to the SQLite database.
-  - **OCR Re-extraction controls**: Integrated with a PrimeNG confirm dialog to safely trigger backend OCR retries.
-  - See [ocr-preview.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/ocr-preview/ocr-preview.component.ts).
+- **`JobDetailsComponent`**: Main details dashboard displaying the 5-stage timeline, live log streaming feeds, and a tabbed details layout. Integrates an `isOcrRetrying` signal that seamlessly switches the view back to the streaming log terminal during a retry, hiding the initial progress bar. See [job-details.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/job-details.component.ts) and [job-details.component.html](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/job-details.component.html).
+- **`OCRPreviewComponent`**: Markdown viewer and editor for research papers. Includes page density grid, raw markdown editor, and OCR re-extraction controls. See [ocr-preview.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/ocr-preview/ocr-preview.component.ts).
 - **`FileExplorerComponent`**: Recursive file explorer for repository trees. See [file-explorer.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/file-explorer/file-explorer.component.ts).
-- **`ClaimsEditorComponent`**: Full-featured claims management UI for Stage 2 human-in-the-loop review. Features:
-  - **Inline editing**: Textarea-based claim text editing with modification tracking (amber "Modified" badge).
-  - **Add/Remove claims**: Add new user-source claims (indigo "New" badge), delete with PrimeNG confirm dialog.
-  - **Save to backend**: PUT `ClaimsSyncRequest` payload wrapping `{ claims: [...] }` to `PUT /api/jobs/{id}/claims`.
-  - **Advance to Stage 3**: Button with unsaved-changes guard — blocks advancement until claims are saved.
-  - **Optimistic state**: Local `EditableClaim` signal array with `_isNew`, `_isModified`, `_isDeleted` flags for safe partial sync.
-  - See [claims-editor.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/claims-editor/claims-editor.component.ts).
+- **`ClaimsEditorComponent`**: Full-featured claims management UI for Stage 2 human-in-the-loop review. Features inline editing, claims additions/removals, and backend syncing. See [claims-editor.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/claims-editor/claims-editor.component.ts).
+- **`CodeExecutionComponent`**: Dedicated UI for Stage 3 Code Execution. Features a 4-state visual layout (pending, running with auto-scrolling logs terminal, completed with live workspace link, and failed with connection command copy controls and delete sandbox actions). See [code-execution.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/code-execution/code-execution.component.ts).
 
 ---
 
-## 🎯 Stage 2 UI: Claims Editor Integration
+## 🎯 Stage 2: Claims Editor Integration
 
 ### Component Hierarchy
 ```
@@ -39,35 +32,36 @@ JobDetailsComponent (parent)
 ```
 
 ### Stage 2 Views in `job-details.component.html`
-The `CLAIM_EXTRACTION` stage now has dedicated views for all four pipeline states:
+The `CLAIM_EXTRACTION` stage has dedicated views for all four pipeline states:
 - **Running**: Live SSE terminal with spinner, agent log stream, and "Return to Dashboard" link.
 - **Completed**: `<app-claims-editor>` with full edit/add/remove/save/advance capabilities.
 - **Failed**: Error banner with claim extraction error log, retry button.
 - **Pending**: Placeholder waiting for Stage 1 completion.
 
-### JobService Methods Added
-- **`advanceToStage3(jobId)`**: Optimistic status update to `CODE_EXECUTION`, POST `/jobs/{id}/advance`, refresh + SSE reconnect.
-- **`refreshClaims(jobId)`**: Reloads claims from backend after editor saves.
-- **`advanceToStage2(jobId)`**: Now reconnects SSE logs after advancing to capture agent output.
+---
 
-### Type Updates
-- **`Job.status`** expanded to include `CODE_EXECUTION`, `CLAIM_REPLICATION`, `DTREG_GENERATION` — matching the 5-stage pipeline lifecycle.
-- **`getStatusSeverity()`** and **`getStatusBadgeSeverity()`** updated in both Dashboard and JobDetails to handle new status values.
+## ⚡ Stage 3: Code Execution Integration (Fully Implemented)
 
-### Backend Fixes
-- **`agent_service.py`**: Changed `-f RESEARCH_PAPER.md` (relative) to `-f str(paper_path)` (absolute) to fix OpenCode's subprocess path resolution — OpenCode resolves `-f` relative to its own context, not the subprocess `cwd`.
-- **`job_service.py`**: Added explicit `RESEARCH_PAPER.md` existence check before invoking the agent, providing a clear `FileNotFoundError` if provisioning is incomplete.
-
-### Claims Sync API Contract
-The `PUT /api/jobs/{id}/claims` endpoint expects a `ClaimsSyncRequest` body:
-```json
-{
-  "claims": [
-    { "id": "claim_1", "claimText": "...", "source": "agent", "metrics": "...", "evidence": "..." }
-  ]
-}
+### Component Hierarchy
 ```
-The frontend wraps the payload accordingly. New claims omit `id` (backend generates one). Deleted claims are omitted from the array (backend removes them).
+JobDetailsComponent (parent)
+  └── CodeExecutionComponent (child, embedded in CODE_EXECUTION view)
+```
+
+### How Stage 3 Works
+1. When Stage 2 (Claim Extraction) is approved, advancing enqueues a `code_execution` task.
+2. The background worker spins up an isolated Docker container named `sbx-{job_id}` (using `sbx create opencode`).
+3. The worker copies `RESEARCH_PAPER.md` to the sandbox and launches the OpenCode execution agent.
+4. The agent sets up a Python virtual environment using `uv`, installs package dependencies, runs verification tests/entry points, and reports status.
+5. If configuration succeeds: Stage status becomes `completed`, and the database stores the OpenCode live `opencode_session_id`.
+6. If configuration fails: Stage status becomes `failed`, and connection command/sandbox details are stored in `sandbox_info` to allow the user to debug manually.
+
+### Frontend UI Implementation
+- **API Schema Additions**: Added `opencodeSessionId` and `opencodeServerUrl` to the `Job` interface, and declared `SandboxInfo` in `job.types.ts`.
+- **Live OpenCode Session Link**: Renders a deep link to `{opencodeServerUrl}/?session={opencodeSessionId}` when the container environment is running or completed.
+- **Auto-Scrolling Live Logs**: Terminal-style box automatically scrolls to the bottom during active logs streaming.
+- **Copy Connection CLI Command**: Displays copyable `connectionCommand` on failure using clipboard API.
+- **Sandbox Container Management**: Added PrimeNG ConfirmDialog wrapper around `DELETE /api/jobs/{job_id}/sandbox` to clean up containers.
 
 ---
 
@@ -78,23 +72,18 @@ The Python backend is located in the [sciloom_pipeline](file:///home/sharath/Doc
 ### Database System
 - **SQLite Engine**: Configured to run in WAL mode with foreign keys enabled.
 - **SQLAlchemy 2.0 ORM Models**:
-  - `Job`: Primary job details, status tracking, relationships, and metadata.
-  - `OcrLog`: Stores character counts per page to allow the frontend to detect empty or partial extraction anomalies.
-  - `Stage`: Track timeline states (`pending`, `running`, `completed`, `failed`) and save sandbox connections command sequences.
+  - `Job`: Includes `sandbox_id`, `opencode_session_id` (String(512)), and `opencode_server_url` (String(2048)).
+  - `OcrLog`: Stores character counts per page.
+  - `Stage`: Track timeline states (`pending`, `running`, `completed`, `failed`) and save sandbox connections command sequences (`sandbox_info`).
   - `Claim`: Tracks extraction variables, verification metrics, and execution evidence.
   - `Log`: Stores chronological logs written by workers.
 - **Alembic migrations**: Managed database migrations dynamically, filtering out internal `_honker_*` job queue tables automatically.
 
 ### Background Workers & Job Queue
 - Orchestrated with **Honker** (a thread-safe SQLite-backed queue utilizing `NOTIFY` and `LISTEN` actions).
-- **Stage 1 (Provisioning)**: When a job is created, the backend enqueues the `provision` task. The background worker consumes it, downloads git repos or extracts ZIP packages, performs security sandboxing checks, runs Gemini OCR on the PDF, logs details, and saves counts.
-- **Stage 2 (Claim Extraction)**: When a job transitions into the `CLAIM_EXTRACTION` stage and no user claims are present, the worker consumes the `claim_extraction` task. It spawns the `claim-extraction-agent` via a secure OpenCode subprocess in the job workspace, streams real-time agent output to the log broker, and parses the generated `CLAIMS.json` to insert extracted quantitative findings directly into the SQLite database.
-
-### 📄 PDF Document Processing & Smart OCR
-- **PDFExtractor Class**: Located in [pdf_extractor.py](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_pipeline/document_processing/pdf_extractor.py).
-- **High-DPI Rasterisation**: Increased resolution default from `300` to `500` DPI to significantly improve formula layout and OCR output.
-- **OCR Engine model**: Switched to `"gemini-3.1-flash-lite"`.
-- **Soft Failure Retry**: Built an internal retry loop. If a page generates an empty (`0` character) result, it waits and retries the request up to 3 times before accepting it.
+- **Stage 1 (Provisioning)**: Consumes the `provision` task to download git repos/ZIPs, run Gemini OCR, and log page character counts.
+- **Stage 2 (Claim Extraction)**: Consumes the `claim_extraction` task to run the claim extraction agent in a secure subprocess.
+- **Stage 3 (Code Execution)**: Consumes the `code_execution` task to create the Docker sandbox, execute the environment configuration agent, and track session details.
 
 ---
 
@@ -104,29 +93,31 @@ Base URL: `http://localhost:8000/api`
 
 ### 1. Jobs Management
 * **`GET /api/jobs`**: Returns all replication jobs.
-* **`GET /api/jobs/{job_id}`**: Returns details of a specific job.
-* **`POST /api/jobs`** (`multipart/form-data`):
-  - Form Fields: `title`, `repoSource` (`"github"`/`"zip"`), `repoUrl`, `dataSource` (`"zip"`/`"in_repo"`), `manualClaims` (JSON array), `pdfFile` (upload), `repoFile` (upload), `dataFile` (upload).
-  - Automatically enqueues the `provision` task.
+* **`GET /api/jobs/{job_id}`**: Returns details of a specific job (including sandbox fields).
+* **`POST /api/jobs`** (`multipart/form-data`): Creates job and enqueues the `provision` task.
 * **`DELETE /api/jobs/{job_id}`**: Deletes the database record, cascaded tables, and disk workspace.
 
 ### 2. Files & OCR Results
 * **`GET /api/jobs/{job_id}/ocr`**: Returns the extracted Markdown text.
-* **`PUT /api/jobs/{job_id}/ocr`**: Overwrites the markdown file on disk and automatically updates page character counts in the DB.
-* **`POST /api/jobs/{job_id}/ocr/retry`**: Triggers a partial re-extraction task specifically for the PDF OCR, leaving workspace files intact.
+* **`PUT /api/jobs/{job_id}/ocr`**: Overwrites the markdown file on disk and automatically updates page character counts.
+* **`POST /api/jobs/{job_id}/ocr/retry`**: Triggers a partial re-extraction task specifically for the PDF OCR.
 * **`GET /api/jobs/{job_id}/files`**: Returns a recursive JSON structure representing the `REPO` folder directory tree.
 
 ### 3. Claims Syncing
 * **`GET /api/jobs/{job_id}/claims`**: Returns claims for the job.
 * **`PUT /api/jobs/{job_id}/claims`**: Synchronizes claims (adds, updates, deletes).
 
-### 4. Stage & Process Controls
-* **`POST /api/jobs/{job_id}/advance`**: Advances the pipeline to the next stage.
-  - If advancing from `PROVISIONING` to `CLAIM_EXTRACTION`, it checks if manual claims were supplied. If yes, it skips straight to `CODE_EXECUTION`. If no, it enqueues the automated `claim_extraction` task.
-* **`POST /api/jobs/{job_id}/retry`**: Resets the current stage status and re-queues it.
-  - Automatically maps the active stage (e.g., `CLAIM_EXTRACTION`) to re-queue the task (`claim_extraction`) for the worker.
+### 4. Sandbox Info & Management
+* **`GET /api/jobs/{job_id}/sandbox`**: Returns connection commands and status of the job's sandbox container.
+* **`DELETE /api/jobs/{job_id}/sandbox`**: Deletes the Docker sandbox container and nullifies sandbox-related job fields.
 
-### 5. Real-time Log Streaming
+### 5. Stage & Process Controls
+* **`POST /api/jobs/{job_id}/advance`**: Advances the pipeline to the next stage.
+  - Advancing from `PROVISIONING` -> `CLAIM_EXTRACTION`: Enqueues `claim_extraction` task (unless user claims exist, in which case it advances straight to `CODE_EXECUTION`).
+  - Advancing from `CLAIM_EXTRACTION` -> `CODE_EXECUTION`: Enqueues the `code_execution` task.
+* **`POST /api/jobs/{job_id}/retry`**: Resets the current stage status and re-queues it (maps the active stage to worker task types).
+
+### 6. Real-time Log Streaming
 * **`GET /api/jobs/{job_id}/logs`**: Server-Sent Events (SSE) stream. Broadcasts historical logs followed by live log updates pushed by the Honker worker.
 
 ---
@@ -149,5 +140,3 @@ Base URL: `http://localhost:8000/api`
   - The worker broadcasts log events directly to the memory queue in RAM, bypassing SQLite file queries or locking.
   - The SSE endpoint registers an `asyncio.Queue` and yields events in real-time. If the client disconnects, the queue is automatically unregistered.
   - This completely eliminated the `disk I/O error` and browser reconnect loop, making log streaming fast and reliable.
-
-

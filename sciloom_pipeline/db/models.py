@@ -18,6 +18,8 @@ class Job(Base):
     status: Mapped[str] = mapped_column(String(50), default="CREATED")
     current_stage: Mapped[str] = mapped_column(String(50), default="PROVISIONING")
     sandbox_id: Mapped[Optional[str]] = mapped_column(String(100))
+    opencode_session_id: Mapped[Optional[str]] = mapped_column(String(512))
+    opencode_server_url: Mapped[Optional[str]] = mapped_column(String(2048))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

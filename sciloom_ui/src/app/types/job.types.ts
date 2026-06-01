@@ -11,9 +11,20 @@ export interface Job {
   status: 'CREATED' | 'PROVISIONING' | 'PROVISIONED' | 'FAILED' | 'CLAIM_EXTRACTION' | 'CODE_EXECUTION' | 'CLAIM_REPLICATION' | 'DTREG_GENERATION' | 'RUNNING' | 'COMPLETED';
   currentStage: 'PROVISIONING' | 'CLAIM_EXTRACTION' | 'CODE_EXECUTION' | 'CLAIM_REPLICATION' | 'DTREG_GENERATION';
   sandboxId?: string;
+  opencodeSessionId?: string;
+  opencodeServerUrl?: string;
   createdAt: string;
   updatedAt: string;
   ocrPageCharCounts?: number[];
+}
+
+export interface SandboxInfo {
+  sandboxId: string;
+  sandboxName: string;
+  status: string;
+  connectionCommand: string;
+  opencodeSessionId?: string;
+  opencodeServerUrl?: string;
 }
 
 export interface JobStage {

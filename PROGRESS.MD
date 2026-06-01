@@ -1,9 +1,9 @@
 # SciLoom Pipeline Project Progress & Handover Note
 
-## Stage 1 UI & Backend Completed 🚀
-**Stage 1 (Provisioning, OCR Extraction & Job Setup)** has been fully completed!
-- **Frontend**: Finished in Angular 21 with PrimeNG v21 and Tailwind CSS layouts. Integrates native LaTeX math rendering and Markdown parsing.
-- **Backend**: Fully implemented using FastAPI, SQLAlchemy 2.0 ORM, Alembic 1.18 migrations, and Honker (async SQLite NOTIFY/LISTEN queue worker orchestration).
+## Stage 1 & 2 UI & Backend Completed 🚀
+**Stage 1 (Provisioning, OCR Extraction & Job Setup)** and **Stage 2 (Claim Extraction)** have been fully completed!
+- **Frontend**: Stage 1 UI is finished in Angular 21 with PrimeNG v21 and Tailwind CSS layouts. Integrates native LaTeX math rendering and Markdown parsing.
+- **Backend**: Stage 1 & 2 fully implemented using FastAPI, SQLAlchemy 2.0 ORM, Alembic 1.18 migrations, Honker (async SQLite NOTIFY/LISTEN queue worker orchestration), and OpenCode LLM Claim Extraction agent subprocess pipeline.
 
 ---
 
@@ -39,7 +39,8 @@ The Python backend is located in the [sciloom_pipeline](file:///home/sharath/Doc
 
 ### Background Workers & Job Queue
 - Orchestrated with **Honker** (a thread-safe SQLite-backed queue utilizing `NOTIFY` and `LISTEN` actions).
-- When a job is created, the backend enqueues the `provision` task. The background worker consumes it, downloads git repos or extracts ZIP packages, performs security sandboxing checks, runs Gemini OCR on the PDF, logs details, and saves counts.
+- **Stage 1 (Provisioning)**: When a job is created, the backend enqueues the `provision` task. The background worker consumes it, downloads git repos or extracts ZIP packages, performs security sandboxing checks, runs Gemini OCR on the PDF, logs details, and saves counts.
+- **Stage 2 (Claim Extraction)**: When a job transitions into the `CLAIM_EXTRACTION` stage and no user claims are present, the worker consumes the `claim_extraction` task. It spawns the `claim-extraction-agent` via a secure OpenCode subprocess in the job workspace, streams real-time agent output to the log broker, and parses the generated `CLAIMS.json` to insert extracted quantitative findings directly into the SQLite database.
 
 ### 📄 PDF Document Processing & Smart OCR
 - **PDFExtractor Class**: Located in [pdf_extractor.py](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_pipeline/document_processing/pdf_extractor.py).
@@ -73,7 +74,9 @@ Base URL: `http://localhost:8000/api`
 
 ### 4. Stage & Process Controls
 * **`POST /api/jobs/{job_id}/advance`**: Advances the pipeline to the next stage.
+  - If advancing from `PROVISIONING` to `CLAIM_EXTRACTION`, it checks if manual claims were supplied. If yes, it skips straight to `CODE_EXECUTION`. If no, it enqueues the automated `claim_extraction` task.
 * **`POST /api/jobs/{job_id}/retry`**: Resets the current stage status and re-queues it.
+  - Automatically maps the active stage (e.g., `CLAIM_EXTRACTION`) to re-queue the task (`claim_extraction`) for the worker.
 
 ### 5. Real-time Log Streaming
 * **`GET /api/jobs/{job_id}/logs`**: Server-Sent Events (SSE) stream. Broadcasts historical logs followed by live log updates pushed by the Honker worker.

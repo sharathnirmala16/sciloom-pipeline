@@ -88,6 +88,8 @@ class QueueService:
                         await job_service.run_provisioning(job_id, db=session)
                     elif task_type == "retry_ocr":
                         await job_service.run_ocr_retry(job_id, db=session)
+                    elif task_type == "claim_extraction":
+                        await job_service.run_claim_extraction(job_id, db=session)
                     else:
                         logger.warning(f"Unknown task type: {task_type}")
                     
@@ -97,7 +99,17 @@ class QueueService:
                     logger.exception(f"Error processing task {job.id}: {e}")
                     job.fail(error=str(e))
                     try:
-                        await job_service.mark_stage_failed(job_id, "PROVISIONING", str(e), db=session)
+                        # Map task_type to corresponding Stage name dynamically
+                        stage_map = {
+                            "provision": "PROVISIONING",
+                            "retry_ocr": "PROVISIONING",
+                            "claim_extraction": "CLAIM_EXTRACTION",
+                            "code_execution": "CODE_EXECUTION",
+                            "claim_replication": "CLAIM_REPLICATION",
+                            "dtreg_generation": "DTREG_GENERATION"
+                        }
+                        failed_stage = stage_map.get(task_type, "PROVISIONING")
+                        await job_service.mark_stage_failed(job_id, failed_stage, str(e), db=session)
                     except Exception as inner_e:
                         logger.error(f"Failed to update failed status in DB for {job_id}: {inner_e}")
 

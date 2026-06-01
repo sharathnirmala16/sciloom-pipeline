@@ -13,6 +13,7 @@ export interface Job {
   sandboxId?: string;
   createdAt: string;
   updatedAt: string;
+  ocrPageCharCounts?: number[];
 }
 
 export interface JobStage {

@@ -159,17 +159,22 @@ export class JobFormComponent implements OnInit {
 
     const val = this.jobForm.value;
     
-    // Submit creation
-    const createdId = this.jobService.createJob(
+    this.jobService.createJob(
       val.title,
-      this.selectedPdfFile()!,
+      val.pdfFile,
       val.repoSource,
-      val.repoSource === 'github' ? val.repoUrl : this.selectedRepoFile()!,
+      val.repoSource === 'github' ? val.repoUrl : val.repoFile,
       val.dataSource,
-      val.dataSource === 'zip' ? this.selectedDataFile()! : undefined,
+      val.dataSource === 'zip' ? val.dataFile : undefined,
       val.claims
-    );
-
-    this.submitted.emit(createdId);
+    ).subscribe({
+      next: (job) => {
+        this.submitted.emit(job.id);
+      },
+      error: (err) => {
+        console.error('Submission failed:', err);
+        alert('Failed to submit job: ' + (err.error?.detail || err.message));
+      }
+    });
   }
 }

@@ -1,26 +1,53 @@
-import asyncio
 import os
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from sciloom_pipeline.document_processing.pdf_extractor import PDFExtractor
-
+# Load environment variables
 load_dotenv()
 
-# main.py lives at <repo_root>/sciloom_pipeline/main.py, so the repo root
-# is always one level up — regardless of the working directory.
-REPO_ROOT = Path(__file__).resolve().parent.parent
-JOBS_DIR = REPO_ROOT / "jobs"
+from sciloom_pipeline.db.database import init_db
+from sciloom_pipeline.services.queue_service import queue_service
+from sciloom_pipeline.routes.jobs import router as jobs_router
+from sciloom_pipeline.routes.claims import router as claims_router
+from sciloom_pipeline.routes.pipeline import router as pipeline_router
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize the SQLite tables
+    init_db()
+    # Start the background task queue worker
+    await queue_service.start_worker()
+    yield
+    # Stop the background worker on exit
+    await queue_service.stop_worker()
 
-async def main():
-    extractor = PDFExtractor(gemini_api_key=os.getenv("GEMINI_API_KEY"))
-    await extractor.extract(
-        pdf_path=JOBS_DIR / "job_2" / "s10340-022-01489-1.pdf",
-        output_dir=JOBS_DIR / "job_2",
-    )
+# Initialize FastAPI application
+app = FastAPI(
+    title="SciLoom Pipeline API",
+    description="Backend API for managing paper OCR, repository sandboxing, claim verification and DTREG generation.",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
+# Enable CORS for the Angular frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust in production environments
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register routes under the '/api' prefix
+app.include_router(jobs_router, prefix="/api")
+app.include_router(claims_router, prefix="/api")
+app.include_router(pipeline_router, prefix="/api")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import uvicorn
+    # Start local uvicorn development server
+    uvicorn.run("sciloom_pipeline.main:app", host="0.0.0.0", port=8000, reload=True)

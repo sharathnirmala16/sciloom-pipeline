@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, inject, signal, computed, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { JobService } from '../../services/job.service';
@@ -28,8 +28,12 @@ import { TagModule } from 'primeng/tag';
   templateUrl: './dashboard.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class DashboardComponent {
+export class DashboardComponent implements OnInit {
   private readonly jobService = inject(JobService);
+
+  ngOnInit(): void {
+    this.jobService.loadJobs();
+  }
   private readonly router = inject(Router);
 
   // Modal visibility

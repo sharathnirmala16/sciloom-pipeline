@@ -67,10 +67,10 @@ As demonstrated in Figure 4, our architecture introduces O(log N) complexity ove
 """
 
 # Model used for all OCR chat sessions.
-_OCR_MODEL = "gemini-3-flash-preview"
+_OCR_MODEL = "gemini-3.1-flash-lite"
 
-# DPI used when rasterising PDF pages.  300 is a good balance of quality vs. size.
-_RASTER_DPI = 300
+# DPI used when rasterising PDF pages.  500 is a good balance of quality vs. size.
+_RASTER_DPI = 500
 
 # Maximum number of retry attempts per page on transient failures.
 _MAX_RETRIES = 3
@@ -112,7 +112,7 @@ class PDFExtractor:
         pdf_path: str | Path,
         output_dir: str | Path | None = None,
         dpi: int = _RASTER_DPI,
-    ) -> Path:
+    ) -> tuple[Path, list[int]]:
         """Convert a PDF to a single Markdown file via parallel per-page OCR.
 
         Args:
@@ -122,7 +122,8 @@ class PDFExtractor:
             dpi:        Resolution used when rasterising pages.
 
         Returns:
-            Path to the generated Markdown file.
+            Tuple of (Path to the generated Markdown file, list of per-page
+            character counts in page order).
         """
         pdf_path = Path(pdf_path)
         if not pdf_path.is_file():
@@ -144,17 +145,20 @@ class PDFExtractor:
             ]
             page_texts: list[str] = await asyncio.gather(*tasks)
 
-        # ── 3. Merge into one ordered Markdown document ───────────────
+        # ── 3. Build per-page character counts ────────────────────────
+        char_counts: list[int] = [len(t) for t in page_texts]
+
+        # ── 4. Merge into one ordered Markdown document ───────────────
         markdown = self._merge(pdf_path.stem, page_texts)
 
-        # ── 4. Write output ───────────────────────────────────────────
+        # ── 5. Write output ───────────────────────────────────────────
         out_dir = Path(output_dir) if output_dir else pdf_path.parent
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / "RESEARCH_PAPER.md"
         out_path.write_text(markdown, encoding="utf-8")
 
         print(f"[PDFExtractor] ✓ Markdown written to '{out_path}'")
-        return out_path
+        return out_path, char_counts
 
     async def _ocr_page(
         self,
@@ -168,6 +172,9 @@ class PDFExtractor:
         On transient failures each attempt opens a fresh ``client.chats.create(...)``
         session, so a broken chat object can never bleed into the next try.
         After ``_MAX_RETRIES`` failed attempts the last exception is re-raised.
+
+        Empty responses (0 chars after strip) are treated as a soft failure and
+        trigger an additional retry before accepting the empty result.
         """
         image_bytes = await asyncio.to_thread(_page_to_bytes, image)
 
@@ -185,7 +192,7 @@ class PDFExtractor:
             ),
         ]
 
-        last_exc: Exception
+        last_exc: Exception | None = None
         for attempt in range(1, _MAX_RETRIES + 1):
             try:
                 # `AsyncClient.chats.create()` returns an AsyncChat — not
@@ -195,10 +202,25 @@ class PDFExtractor:
                     config=types.GenerateContentConfig(
                         system_instruction=self.system_prompt,
                         temperature=0.1,
+                        thinking_config=types.ThinkingConfig(
+                            thinking_level=types.ThinkingLevel.MEDIUM
+                        ),
                     ),
                 )
                 response = await chat.send_message(message_parts)
                 text: str = response.text or ""
+
+                # ── Empty-page one-shot retry ─────────────────────────
+                # Treat a blank response as a soft failure so the page gets
+                # one more chance before we accept the empty result.
+                if len(text.strip()) == 0 and attempt < _MAX_RETRIES:
+                    wait = 2 ** attempt
+                    print(
+                        f"[PDFExtractor] ⚠ Page {page_index + 1} returned 0 chars"
+                        f" (attempt {attempt}/{_MAX_RETRIES}) — retrying in {wait}s …"
+                    )
+                    await asyncio.sleep(wait)
+                    continue  # re-enter loop for retry
 
                 print(
                     f"[PDFExtractor] ✓ Page {page_index + 1} OCR complete"
@@ -222,7 +244,10 @@ class PDFExtractor:
                         f" {_MAX_RETRIES} attempts: {exc!r}"
                     )
 
-        raise last_exc
+        if last_exc is not None:
+            raise last_exc
+        # All attempts returned empty — return empty string rather than crashing.
+        return ""
 
     @staticmethod
     def _merge(document_title: str, page_texts: list[str]) -> str:

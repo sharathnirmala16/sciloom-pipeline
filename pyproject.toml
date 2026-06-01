@@ -10,4 +10,11 @@ name = "sciloom-pipeline"
 version = "0.0.1"
 description = "SciLoom Pipeline: Agentic orchestration for Opencode jobs that make research papers machine readable"
 requires-python = ">=3.12"
-dependencies = ["python-dotenv>=1.2.2", "fastapi[standard]>=0.136.1", "honker>=0.2.4", "pydantic-ai>=1.104.0"]
+dependencies = [
+    "python-dotenv>=1.2.2", 
+    "fastapi[standard]>=0.136.1", 
+    "honker>=0.2.4", 
+    "pydantic-ai>=1.104.0", 
+    "sqlalchemy==2.0.50",
+    "alembic==1.18.4",
+]

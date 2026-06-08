@@ -1,7 +1,6 @@
 import json
 import pytest
-from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 from sciloom_pipeline.services.job_service import job_service
 from sciloom_pipeline.config import settings
 from sciloom_pipeline.db import models
@@ -14,7 +13,7 @@ class TestCodeExecution:
     def setup_job(self):
         """Sets up a test job record in the database and a temporary directory."""
         self.job_id = "test_job_code_exec"
-        self.job_dir = settings.jobs_dir / f"job_{self.job_id}"
+        self.job_dir = settings.jobs_dir / self.job_id
         self.job_dir.mkdir(parents=True, exist_ok=True)
         
         # Create REPO folder
@@ -55,7 +54,7 @@ class TestCodeExecution:
     @patch("sciloom_pipeline.services.agent_service.agent_service.run_code_execution_agent")
     async def test_run_code_execution_success_flow(self, mock_agent, mock_copy, mock_create):
         """Positive Case: Verify sandbox creation and code execution agent run successfully."""
-        mock_create.return_value = "sbx-test_job_code_exec"
+        mock_create.return_value = "sbx-test-job-code-exec"
         mock_copy.return_value = None
         mock_agent.return_value = {
             "success": True,
@@ -70,7 +69,7 @@ class TestCodeExecution:
         with SessionLocal() as db:
             job = db.query(models.Job).filter(models.Job.id == self.job_id).first()
             assert job.status == "CODE_EXECUTION"
-            assert job.sandbox_id == "sbx-test_job_code_exec"
+            assert job.sandbox_id == "sbx-test-job-code-exec"
             assert job.opencode_session_id == "mock_session_123"
             assert job.opencode_server_url == settings.opencode_server_url
 
@@ -82,7 +81,7 @@ class TestCodeExecution:
             
             output = json.loads(stage.output_json)
             assert output["status"] == "success"
-            assert output["sandboxId"] == "sbx-test_job_code_exec"
+            assert output["sandboxId"] == "sbx-test-job-code-exec"
             assert output["opencodeSessionId"] == "mock_session_123"
 
     @patch("sciloom_pipeline.services.sandbox_service.sandbox_service.create_sandbox")
@@ -108,14 +107,14 @@ class TestCodeExecution:
             assert "Docker daemon not running" in stage.error_log
             
             sandbox_info = json.loads(stage.sandbox_info)
-            assert sandbox_info["sandboxId"] == "sbx-test_job_code_exec"
+            assert sandbox_info["sandboxId"] == "sbx-test-job-code-exec"
 
     @patch("sciloom_pipeline.services.sandbox_service.sandbox_service.create_sandbox")
     @patch("sciloom_pipeline.services.sandbox_service.sandbox_service.copy_to_sandbox")
     @patch("sciloom_pipeline.services.agent_service.agent_service.run_code_execution_agent")
     async def test_run_code_execution_agent_fails_marks_stage_failed(self, mock_agent, mock_copy, mock_create):
         """Negative Case: Sandbox creates successfully but Agent fails execution."""
-        mock_create.return_value = "sbx-test_job_code_exec"
+        mock_create.return_value = "sbx-test-job-code-exec"
         mock_copy.return_value = None
         mock_agent.return_value = {
             "success": False,
@@ -131,7 +130,7 @@ class TestCodeExecution:
         with SessionLocal() as db:
             job = db.query(models.Job).filter(models.Job.id == self.job_id).first()
             assert job.status == "FAILED"
-            assert job.sandbox_id == "sbx-test_job_code_exec" # Sandbox persists!
+            assert job.sandbox_id == "sbx-test-job-code-exec" # Sandbox persists!
             assert job.opencode_session_id == "mock_session_failed"
 
             stage = db.query(models.Stage).filter(
@@ -142,7 +141,7 @@ class TestCodeExecution:
             assert "Failed to install package 'numpy'" in stage.error_log
             
             sandbox_info = json.loads(stage.sandbox_info)
-            assert sandbox_info["sandboxId"] == "sbx-test_job_code_exec"
+            assert sandbox_info["sandboxId"] == "sbx-test-job-code-exec"
             assert "sbx exec" in sandbox_info["connectionCommand"]
 
     @patch("sciloom_pipeline.services.sandbox_service.sandbox_service.remove_sandbox")
@@ -153,14 +152,14 @@ class TestCodeExecution:
         # Pre-set sandbox fields on job
         with SessionLocal() as db:
             job = db.query(models.Job).filter(models.Job.id == self.job_id).first()
-            job.sandbox_id = "sbx-test_job_code_exec"
+            job.sandbox_id = "sbx-test-job-code-exec"
             job.opencode_session_id = "mock_session_123"
             job.opencode_server_url = "http://localhost:4096"
             db.commit()
 
         await job_service.delete_sandbox(self.job_id)
 
-        mock_remove.assert_called_once_with("sbx-test_job_code_exec")
+        mock_remove.assert_called_once_with("sbx-test-job-code-exec")
 
         # Verify cleared in database
         with SessionLocal() as db:
@@ -172,19 +171,19 @@ class TestCodeExecution:
     @patch("sciloom_pipeline.services.sandbox_service.sandbox_service.get_sandbox_status")
     async def test_get_sandbox_info_endpoint(self, mock_status):
         """Verify get_sandbox_info gathers correct status and connection details."""
-        mock_status.return_value = {"name": "sbx-test_job_code_exec"}
+        mock_status.return_value = {"name": "sbx-test-job-code-exec"}
 
         with SessionLocal() as db:
             job = db.query(models.Job).filter(models.Job.id == self.job_id).first()
-            job.sandbox_id = "sbx-test_job_code_exec"
+            job.sandbox_id = "sbx-test-job-code-exec"
             job.opencode_session_id = "mock_session_123"
             job.opencode_server_url = "http://localhost:4096"
             db.commit()
 
         info = await job_service.get_sandbox_info(self.job_id)
         
-        assert info["sandboxId"] == "sbx-test_job_code_exec"
+        assert info["sandboxId"] == "sbx-test-job-code-exec"
         assert info["status"] == "running"
-        assert "sbx exec sbx-test_job_code_exec" in info["connectionCommand"]
+        assert "sbx exec sbx-test-job-code-exec" in info["connectionCommand"]
         assert info["opencodeSessionId"] == "mock_session_123"
         assert info["opencodeServerUrl"] == "http://localhost:4096"

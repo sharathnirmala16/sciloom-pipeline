@@ -2,7 +2,6 @@ import {
   Component, 
   inject, 
   input, 
-  output, 
   signal, 
   effect, 
   ChangeDetectionStrategy, 
@@ -15,11 +14,11 @@ import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { MessageModule } from 'primeng/message';
-import { Job, JobLog, SandboxInfo } from '../../types/job.types';
-import { JobService } from '../../services/job.service';
+import { Job, JobLog, SandboxInfo } from '../../../types/job.types';
+import { JobService } from '../../../services/job.service';
 
 @Component({
-  selector: 'app-code-execution',
+  selector: 'app-stage-code-execution',
   imports: [
     CommonModule,
     ButtonModule,
@@ -237,14 +236,24 @@ import { JobService } from '../../services/job.service';
                   Move to Stage 4: Claim Replication to start verifying replication results across multiple environments.
                 </p>
               </div>
-              <button
-                type="button"
-                (click)="advanceToStage4.emit()"
-                class="px-4 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 self-start"
-              >
-                <i class="pi pi-arrow-right text-[10px]"></i>
-                Advance to Stage 4
-              </button>
+              <div class="flex flex-wrap items-center gap-3 self-start">
+                <button
+                  type="button"
+                  (click)="onAdvance()"
+                  class="px-4 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <i class="pi pi-arrow-right text-[10px]"></i>
+                  Advance to Stage 4
+                </button>
+                <button
+                  type="button"
+                  (click)="onRetry()"
+                  class="px-4 py-2.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <i class="pi pi-refresh text-[10px]"></i>
+                  Retry Code Execution
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -370,7 +379,7 @@ import { JobService } from '../../services/job.service';
           <div class="flex items-center gap-3 pt-4 border-t border-slate-100">
             <button
               type="button"
-              (click)="retryRequested.emit()"
+              (click)="onRetry()"
               class="px-5 py-2.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
             >
               <i class="pi pi-refresh text-[10px]"></i>
@@ -383,7 +392,7 @@ import { JobService } from '../../services/job.service';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class CodeExecutionComponent implements AfterViewChecked {
+export class StageCodeExecutionComponent implements AfterViewChecked {
   private readonly jobService = inject(JobService);
   private readonly confirmationService = inject(ConfirmationService);
 
@@ -392,10 +401,6 @@ export class CodeExecutionComponent implements AfterViewChecked {
   stageStatus = input.required<'pending' | 'running' | 'completed' | 'failed'>();
   errorLog = input<string | null>(null);
   logs = input<JobLog[]>([]);
-
-  retryRequested = output<void>();
-  advanceToStage4 = output<void>();
-  sandboxDeleted = output<void>();
 
   sandboxInfo = signal<SandboxInfo | null>(null);
   isLoadingSandboxInfo = signal(false);
@@ -486,7 +491,7 @@ export class CodeExecutionComponent implements AfterViewChecked {
     this.jobService.deleteSandbox(this.jobId()).subscribe({
       next: () => {
         this.isDeletingSandbox.set(false);
-        this.sandboxDeleted.emit();
+        this.jobService.loadJobDetails(this.jobId());
       },
       error: (err) => {
         console.error('Failed to delete sandbox:', err);
@@ -500,5 +505,13 @@ export class CodeExecutionComponent implements AfterViewChecked {
       this.copied.set(true);
       setTimeout(() => this.copied.set(false), 2000);
     });
+  }
+
+  onAdvance(): void {
+    this.jobService.advancePipeline(this.jobId(), 'CLAIM_REPLICATION');
+  }
+
+  onRetry(): void {
+    this.jobService.retryPipelineStage(this.jobId(), 'CODE_EXECUTION');
   }
 }

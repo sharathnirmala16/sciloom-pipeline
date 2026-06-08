@@ -1,7 +1,6 @@
 import io
 import zipfile
 import pytest
-from pathlib import Path
 from sciloom_pipeline.services.job_service import job_service
 from sciloom_pipeline.config import settings
 
@@ -18,7 +17,7 @@ def create_in_memory_zip(file_tree: dict) -> bytes:
 async def test_run_provisioning_zip_success(mock_ocr_extractor):
     """Positive Case: Verify provisioning runs successfully for a ZIP repo source."""
     job_id = "test_job_zip_success"
-    job_dir = settings.jobs_dir / f"job_{job_id}"
+    job_dir = settings.jobs_dir / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     
     # 1. Create dummy paper.pdf
@@ -61,14 +60,21 @@ async def test_run_provisioning_zip_success(mock_ocr_extractor):
     # Verify files extracted and OCR created
     assert (job_dir / "REPO" / "README.md").is_file()
     assert (job_dir / "REPO" / "src" / "main.py").is_file()
-    assert (job_dir / "RESEARCH_PAPER.md").is_file()
+    assert (job_dir / "REPO" / ".sciloom" / "RESEARCH_PAPER.md").is_file()
     assert not repo_zip.is_file()  # Temp zip deleted
+    
+    # Verify .opencode/agents folder was copied to REPO directory
+    assert (job_dir / "REPO" / ".opencode" / "agents").is_dir()
+    assert (job_dir / "REPO" / ".opencode" / "agents" / "code-execution-agent.md").is_file()
+    assert not (job_dir / "REPO" / ".opencode" / "node_modules").exists()
+
+
 
 @pytest.mark.asyncio
 async def test_run_provisioning_missing_pdf(mock_ocr_extractor):
     """Negative Case: Verify provisioning fails when paper.pdf is missing."""
     job_id = "test_job_missing_pdf"
-    job_dir = settings.jobs_dir / f"job_{job_id}"
+    job_dir = settings.jobs_dir / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     
     # Write repo zip, but do NOT write paper.pdf
@@ -104,7 +110,7 @@ async def test_run_provisioning_missing_pdf(mock_ocr_extractor):
 async def test_run_provisioning_zip_slip_prevention(mock_ocr_extractor):
     """Negative Case: Verify that directory traversal (Zip Slip) in repository zip is caught and prevented."""
     job_id = "test_job_zip_slip"
-    job_dir = settings.jobs_dir / f"job_{job_id}"
+    job_dir = settings.jobs_dir / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     
     # Create PDF
@@ -151,7 +157,7 @@ async def test_run_provisioning_zip_slip_prevention(mock_ocr_extractor):
 async def test_run_provisioning_invalid_git_url(mock_ocr_extractor):
     """Negative Case: Verify git cloning fails and prevents argument injection if URL is invalid."""
     job_id = "test_job_invalid_git"
-    job_dir = settings.jobs_dir / f"job_{job_id}"
+    job_dir = settings.jobs_dir / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     
     # Create PDF

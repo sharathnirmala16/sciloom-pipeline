@@ -107,18 +107,39 @@ export class JobService {
   }
 
   /**
-   * Resets/retries Stage 1 for a failed job.
+   * Parameterized method to transition a job to the next target stage.
    */
-  public retryJobStage1(jobId: string): void {
-    // Reset local state first to feel responsive
+  public advancePipeline(jobId: string, targetStage: string): void {
     this._jobs.update(prev =>
-      prev.map(j => (j.id === jobId ? { ...j, status: 'PROVISIONING', updatedAt: new Date().toISOString() } : j))
+      prev.map(j =>
+        j.id === jobId ? { ...j, status: targetStage as any, currentStage: targetStage as any, updatedAt: new Date().toISOString() } : j
+      )
+    );
+
+    this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
+      next: () => {
+        this.refreshJobStatusAndStages(jobId);
+        this.connectLogsSse(jobId);
+      },
+      error: err => {
+        console.error(`Failed to advance job to stage ${targetStage}:`, err);
+        this.refreshJobStatusAndStages(jobId);
+      }
+    });
+  }
+
+  /**
+   * Parameterized method to retry a specific stage for a job.
+   */
+  public retryPipelineStage(jobId: string, stageName: string): void {
+    this._jobs.update(prev =>
+      prev.map(j => (j.id === jobId ? { ...j, status: stageName as any, updatedAt: new Date().toISOString() } : j))
     );
     this._stages.update(prev => {
       const stagesList = prev[jobId] || [];
       return {
         ...prev,
-        [jobId]: stagesList.map(s => (s.stageName === 'PROVISIONING' ? { ...s, status: 'running' } : s))
+        [jobId]: stagesList.map(s => (s.stageName === stageName ? { ...s, status: 'running' } : s))
       };
     });
     this._logs.update(prev => ({ ...prev, [jobId]: [] }));
@@ -128,11 +149,17 @@ export class JobService {
         this.connectLogsSse(jobId);
       },
       error: err => {
-        console.error('Failed to retry job stage 1:', err);
-        // Refresh statuses to sync with actual backend state on failure
+        console.error(`Failed to retry job stage ${stageName}:`, err);
         this.refreshJobStatusAndStages(jobId);
       }
     });
+  }
+
+  /**
+   * Resets/retries Stage 1 for a failed job.
+   */
+  public retryJobStage1(jobId: string): void {
+    this.retryPipelineStage(jobId, 'PROVISIONING');
   }
 
   /**
@@ -173,44 +200,14 @@ export class JobService {
    * Transitions job to Stage 2: Claim Extraction.
    */
   public advanceToStage2(jobId: string): void {
-    this._jobs.update(prev =>
-      prev.map(j =>
-        j.id === jobId ? { ...j, status: 'CLAIM_EXTRACTION', currentStage: 'CLAIM_EXTRACTION', updatedAt: new Date().toISOString() } : j
-      )
-    );
-
-    this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
-      next: () => {
-        this.refreshJobStatusAndStages(jobId);
-        this.connectLogsSse(jobId);
-      },
-      error: err => {
-        console.error('Failed to advance job to stage 2:', err);
-        this.refreshJobStatusAndStages(jobId);
-      }
-    });
+    this.advancePipeline(jobId, 'CLAIM_EXTRACTION');
   }
 
   /**
    * Transitions job to Stage 3: Code Execution.
    */
   public advanceToStage3(jobId: string): void {
-    this._jobs.update(prev =>
-      prev.map(j =>
-        j.id === jobId ? { ...j, status: 'CODE_EXECUTION', currentStage: 'CODE_EXECUTION', updatedAt: new Date().toISOString() } : j
-      )
-    );
-
-    this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
-      next: () => {
-        this.refreshJobStatusAndStages(jobId);
-        this.connectLogsSse(jobId);
-      },
-      error: err => {
-        console.error('Failed to advance job to stage 3:', err);
-        this.refreshJobStatusAndStages(jobId);
-      }
-    });
+    this.advancePipeline(jobId, 'CODE_EXECUTION');
   }
 
   /**
@@ -235,50 +232,14 @@ export class JobService {
    * Retries a specific active stage for a job.
    */
   public retryCurrentStage(jobId: string, stageName: string): void {
-    // Reset local state first to feel responsive
-    this._jobs.update(prev =>
-      prev.map(j => (j.id === jobId ? { ...j, status: stageName as any, updatedAt: new Date().toISOString() } : j))
-    );
-    this._stages.update(prev => {
-      const stagesList = prev[jobId] || [];
-      return {
-        ...prev,
-        [jobId]: stagesList.map(s => (s.stageName === stageName ? { ...s, status: 'running' } : s))
-      };
-    });
-    this._logs.update(prev => ({ ...prev, [jobId]: [] }));
-
-    this.http.post(`${this.apiUrl}/jobs/${jobId}/retry`, {}).subscribe({
-      next: () => {
-        this.connectLogsSse(jobId);
-      },
-      error: err => {
-        console.error(`Failed to retry job stage ${stageName}:`, err);
-        this.refreshJobStatusAndStages(jobId);
-      }
-    });
+    this.retryPipelineStage(jobId, stageName);
   }
 
   /**
    * Transitions job to Stage 4: Claim Replication.
    */
   public advanceToStage4(jobId: string): void {
-    this._jobs.update(prev =>
-      prev.map(j =>
-        j.id === jobId ? { ...j, status: 'CLAIM_REPLICATION', currentStage: 'CLAIM_REPLICATION', updatedAt: new Date().toISOString() } : j
-      )
-    );
-
-    this.http.post(`${this.apiUrl}/jobs/${jobId}/advance`, {}).subscribe({
-      next: () => {
-        this.refreshJobStatusAndStages(jobId);
-        this.connectLogsSse(jobId);
-      },
-      error: err => {
-        console.error('Failed to advance job to stage 4:', err);
-        this.refreshJobStatusAndStages(jobId);
-      }
-    });
+    this.advancePipeline(jobId, 'CLAIM_REPLICATION');
   }
 
   /**
@@ -389,36 +350,49 @@ export class JobService {
     // Reset logs array
     this._logs.update(prev => ({ ...prev, [jobId]: [] }));
 
-    const eventSource = new EventSource(`${this.apiUrl}/jobs/${jobId}/logs`);
+    const eventSource = new EventSource(`${this.apiUrl}/jobs/${jobId}/logs?bulk=true`);
     this.activeEventSource = eventSource;
 
     eventSource.onmessage = (event) => {
       try {
-        const logData = JSON.parse(event.data);
-        const newLog: JobLog = {
-          timestamp: logData.timestamp,
-          level: logData.level,
-          message: logData.message
-        };
-        this._logs.update(prev => {
-          const currentLogs = prev[jobId] || [];
-          return {
+        const payload = JSON.parse(event.data);
+        if (payload.is_history) {
+          const historicalLogs: JobLog[] = (payload.logs || []).map((log: any) => ({
+            timestamp: log.timestamp || '',
+            level: log.level || 'INFO',
+            message: log.message || ''
+          }));
+          this._logs.update(prev => ({
             ...prev,
-            [jobId]: [...currentLogs, newLog]
+            [jobId]: historicalLogs
+          }));
+        } else {
+          const log = payload.log;
+          const newLog: JobLog = {
+            timestamp: log.timestamp || '',
+            level: log.level || 'INFO',
+            message: log.message || ''
           };
-        });
+          this._logs.update(prev => {
+            const currentLogs = prev[jobId] || [];
+            return {
+              ...prev,
+              [jobId]: [...currentLogs, newLog]
+            };
+          });
 
-        // Whenever state transition occurs, reload job status/stages/files/ocr
-        if (logData.message.includes('Advanced pipeline stage') || 
-            logData.message.includes('completed') || 
-            logData.message.includes('failed') ||
-            logData.message.includes('status =') ||
-            logData.message.includes('successfully parsed') ||
-            logData.message.includes('cloned successfully') ||
-            logData.message.includes('extracted successfully') ||
-            logData.message.includes('setup completed') ||
-            logData.message.includes('database updated')) {
-          this.refreshJobStatusAndStages(jobId);
+          // Whenever state transition occurs, reload job status/stages/files/ocr
+          if (log.message.includes('Advanced pipeline stage') || 
+              log.message.includes('completed') || 
+              log.message.includes('failed') ||
+              log.message.includes('status =') ||
+              log.message.includes('successfully parsed') ||
+              log.message.includes('cloned successfully') ||
+              log.message.includes('extracted successfully') ||
+              log.message.includes('setup completed') ||
+              log.message.includes('database updated')) {
+            this.refreshJobStatusAndStages(jobId);
+          }
         }
       } catch (e) {
         console.error('Error parsing SSE log:', e);

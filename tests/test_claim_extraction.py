@@ -1,8 +1,5 @@
-import os
 import json
 import pytest
-import asyncio
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
 from sciloom_pipeline.services.job_service import job_service
 from sciloom_pipeline.config import settings
@@ -16,14 +13,16 @@ class TestClaimExtraction:
     def setup_job(self):
         """Sets up a test job record in the database and a temporary directory."""
         self.job_id = "test_job_extraction"
-        self.job_dir = settings.jobs_dir / f"job_{self.job_id}"
+        self.job_dir = settings.jobs_dir / self.job_id
         self.job_dir.mkdir(parents=True, exist_ok=True)
         
-        # Write a dummy paper.pdf and RESEARCH_PAPER.md
+        # Write a dummy paper.pdf and RESEARCH_PAPER.md under .sciloom/ in REPO
         pdf_path = self.job_dir / "paper.pdf"
         pdf_path.write_bytes(b"%PDF-1.4 dummy contents")
         
-        md_path = self.job_dir / "RESEARCH_PAPER.md"
+        sciloom_dir = self.job_dir / "REPO" / ".sciloom"
+        sciloom_dir.mkdir(parents=True, exist_ok=True)
+        md_path = sciloom_dir / "RESEARCH_PAPER.md"
         md_path.write_text("# Test Paper\nSome content to analyze.", encoding="utf-8")
         
         # Create DB record using SessionLocal
@@ -72,14 +71,14 @@ class TestClaimExtraction:
         # Write mock CLAIMS.json which the agent is supposed to output
         claims_data = [
             {
-                "claim_id": "CLAIM-001",
-                "claim_text": "Model accuracy increased by 15%",
+                "id": "CLAIM-001",
+                "claimText": "Model accuracy increased by 15%",
                 "metrics": "15% increase",
                 "evidence": "Section 4.2"
             },
             {
-                "claim_id": "CLAIM-002",
-                "claim_text": "Runtime decreased to 20ms",
+                "id": "CLAIM-002",
+                "claimText": "Runtime decreased to 20ms",
                 "metrics": "20ms runtime",
                 "evidence": "Figure 3"
             }

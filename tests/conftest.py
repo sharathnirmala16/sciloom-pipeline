@@ -40,13 +40,10 @@ def setup_test_environment():
         pass
     # Clean up test temp files after test session finishes
     shutil.rmtree(test_temp_dir, ignore_errors=True)
-
 @pytest.fixture(autouse=True)
 def clean_database():
     """Cleans up all table contents before each test case to prevent cross-test pollution."""
     with engine.begin() as conn:
-        conn.execute(text("DELETE FROM logs"))
-        conn.execute(text("DELETE FROM claims"))
         conn.execute(text("DELETE FROM stages"))
         conn.execute(text("DELETE FROM jobs"))
         # Clear honker's internal tables if any exist

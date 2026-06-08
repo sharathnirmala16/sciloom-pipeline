@@ -41,8 +41,8 @@ async def create_job(
     db: Session = Depends(get_db)
 ):
     """Creates a new replication job, uploads files, and triggers Stage 1 provisioning in the background."""
-    import time
-    job_id = f"job_{int(time.time() * 1000)}"
+    import secrets
+    job_id = f"job_{secrets.token_hex(6)}"
 
     # Parse manual claims
     claims_list = []
@@ -67,7 +67,7 @@ async def create_job(
         raise HTTPException(status_code=400, detail="dataFile is required when dataSource is 'zip'")
 
     # Create workspace directories
-    job_dir = settings.jobs_dir / f"job_{job_id}"
+    job_dir = settings.jobs_dir / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Save PDF file
@@ -174,7 +174,7 @@ async def delete_job(job_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
     try:
-        job_dir = settings.jobs_dir / f"job_{job_id}"
+        job_dir = settings.jobs_dir / job_id
         if job_dir.is_dir():
             shutil.rmtree(job_dir)
     except Exception as e:

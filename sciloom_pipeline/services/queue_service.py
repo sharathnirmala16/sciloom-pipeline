@@ -92,6 +92,10 @@ class QueueService:
                         await job_service.run_claim_extraction(job_id, db=session)
                     elif task_type == "code_execution":
                         await job_service.run_code_execution(job_id, db=session)
+                    elif task_type == "claim_replication":
+                        await job_service.run_claim_replication(job_id, db=session)
+                    elif task_type == "dtreg_generation":
+                        await job_service.run_dtreg_generation(job_id, db=session)
                     else:
                         logger.warning(f"Unknown task type: {task_type}")
                     

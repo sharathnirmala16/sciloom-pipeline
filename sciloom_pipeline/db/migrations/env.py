@@ -1,6 +1,10 @@
+import os
 import sys
 from pathlib import Path
 from logging.config import fileConfig
+
+# Set migration flag so connections disable foreign keys to prevent SQLite cascade deletes
+os.environ["ALEMBIC_MIGRATION"] = "true"
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool

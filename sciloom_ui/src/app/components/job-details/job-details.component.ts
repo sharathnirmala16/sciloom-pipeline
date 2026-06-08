@@ -2,17 +2,16 @@ import { Component, inject, signal, computed, effect, OnInit, OnDestroy, ChangeD
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { JobService } from '../../services/job.service';
-import { FileExplorerComponent } from '../file-explorer/file-explorer.component';
-import { OCRPreviewComponent } from '../ocr-preview/ocr-preview.component';
-import { ClaimsEditorComponent } from '../claims-editor/claims-editor.component';
-import { CodeExecutionComponent } from '../code-execution/code-execution.component';
+
+// Child Stage Components
+import { StageProvisioningComponent } from './stage-provisioning/stage-provisioning.component';
+import { StageClaimExtractionComponent } from './stage-claim-extraction/stage-claim-extraction.component';
+import { StageCodeExecutionComponent } from './stage-code-execution/stage-code-execution.component';
+import { StageClaimReplicationComponent } from './stage-claim-replication/stage-claim-replication.component';
+import { StageDtregGenerationComponent } from './stage-dtreg-generation/stage-dtreg-generation.component';
 
 // PrimeNG Imports
-import { ButtonModule } from 'primeng/button';
-import { TimelineModule } from 'primeng/timeline';
-import { ProgressBarModule } from 'primeng/progressbar';
 import { TagModule } from 'primeng/tag';
-import { MessageModule } from 'primeng/message';
 
 interface TimelineItem {
   name: 'PROVISIONING' | 'CLAIM_EXTRACTION' | 'CODE_EXECUTION' | 'CLAIM_REPLICATION' | 'DTREG_GENERATION';
@@ -25,15 +24,12 @@ interface TimelineItem {
   imports: [
     CommonModule,
     RouterLink,
-    FileExplorerComponent,
-    OCRPreviewComponent,
-    ClaimsEditorComponent,
-    CodeExecutionComponent,
-    ButtonModule,
-    TimelineModule,
-    ProgressBarModule,
-    TagModule,
-    MessageModule
+    StageProvisioningComponent,
+    StageClaimExtractionComponent,
+    StageCodeExecutionComponent,
+    StageClaimReplicationComponent,
+    StageDtregGenerationComponent,
+    TagModule
   ],
   templateUrl: './job-details.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -46,21 +42,10 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   // Active Job ID
   jobId = signal<string>('');
 
-  // Active tab selection in provisioned view
-  activeTab = signal<'ocr' | 'files' | 'claims'>('ocr');
-
   // Currently selected stage in the horizontal timeline
   selectedStageName = signal<'PROVISIONING' | 'CLAIM_EXTRACTION' | 'CODE_EXECUTION' | 'CLAIM_REPLICATION' | 'DTREG_GENERATION'>('PROVISIONING');
 
-  /**
-   * Temporarily true after the user confirms an OCR retry, so the terminal
-   * view is shown even though the job DB status is still PROVISIONED.
-   * Clears automatically once the job's status returns to PROVISIONED
-   * (i.e. the retry finished and the SSE stream ended).
-   */
-  isOcrRetrying = signal(false);
-
-  // Track previous status to detect when retry finishes
+  // Track previous status to detect when status changes
   private _prevStatus = signal<string | undefined>(undefined);
 
   // Hardcoded timeline structure matching the 5 stages
@@ -73,14 +58,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   ];
 
   constructor() {
-    // Effect: once OCR retry finishes (status flips back to PROVISIONED),
-    // clear the retrying flag so the OCR preview re-appears with fresh data.
     effect(() => {
       const currentStatus = this.job()?.status;
       const prev = this._prevStatus();
-      if (this.isOcrRetrying() && prev === 'PROVISIONING' && currentStatus === 'PROVISIONED') {
-        this.isOcrRetrying.set(false);
-      }
       this._prevStatus.set(currentStatus);
 
       // Auto-select active stage when status changes, if not already specified by query param
@@ -133,65 +113,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
   ocrMarkdown = computed(() => this.jobService.getSimulatedOcrMarkdown(this.jobId()));
   repoFiles = computed(() => this.jobService.getSimulatedRepoFiles(this.jobId()));
   codeExecutionStage = computed(() => this.stages().find(s => s.stageName === 'CODE_EXECUTION') || null);
-
-  // Simulated Stage 1 progress metrics
-  progressPercent = computed(() => {
-    const jobVal = this.job();
-    if (!jobVal) return 0;
-    if (jobVal.status === 'CREATED') return 5;
-    if (jobVal.status === 'FAILED') return 100;
-    if (jobVal.status === 'PROVISIONED' || jobVal.status === 'CLAIM_EXTRACTION' || jobVal.status === 'COMPLETED') return 100;
-    
-    // Increment based on the number of logs received in the mock stream
-    const logsList = this.logs();
-    return Math.min(Math.round((logsList.length / 9) * 100), 98);
-  });
-
-  activeStepName = computed(() => {
-    const logsList = this.logs();
-    if (logsList.length <= 2) return 'Step 1/3: Provisioning workspace directories...';
-    if (logsList.length <= 5) return 'Step 2/3: Unzipping files and cloning repo...';
-    return 'Step 3/3: Running Gemini Vision OCR to convert paper to markdown...';
-  });
-
-  // Action methods
-  onRetry(): void {
-    this.jobService.retryJobStage1(this.jobId());
-  }
-
-  onAdvanceToStage2(): void {
-    this.jobService.advanceToStage2(this.jobId());
-  }
-
-  onAdvanceToStage3(): void {
-    this.jobService.advanceToStage3(this.jobId());
-  }
-
-  onClaimsSaved(): void {
-    this.jobService.refreshClaims(this.jobId());
-  }
-
-  onRetryCodeExecution(): void {
-    this.jobService.retryCurrentStage(this.jobId(), 'CODE_EXECUTION');
-  }
-
-  onAdvanceToStage4(): void {
-    this.jobService.advanceToStage4(this.jobId());
-  }
-
-  onSandboxDeleted(): void {
-    this.jobService.loadJobDetails(this.jobId());
-  }
-
-  /** Called when the OCR preview confirms a retry — switch UI to terminal view. */
-  onOcrRetryStarted(): void {
-    this.isOcrRetrying.set(true);
-    this._prevStatus.set('PROVISIONING');
-  }
-
-  selectTab(tab: 'ocr' | 'files' | 'claims'): void {
-    this.activeTab.set(tab);
-  }
 
   // --- Helper state builders for timeline stages ---
   getStageStatus(stageName: string): 'completed' | 'running' | 'failed' | 'pending' {
@@ -275,8 +196,9 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
       case 'CREATED':
       case 'PROVISIONING':
       case 'PROVISIONED':
-      case 'FAILED':
         return 'PROVISIONING';
+      case 'FAILED':
+        return this.job()?.currentStage || 'PROVISIONING';
       case 'CLAIM_EXTRACTION':
         return 'CLAIM_EXTRACTION';
       case 'CODE_EXECUTION':
@@ -288,41 +210,6 @@ export class JobDetailsComponent implements OnInit, OnDestroy {
         return 'DTREG_GENERATION';
       default:
         return null;
-    }
-  }
-
-  getSelectedStageLabel(): string {
-    const stage = this.timelineStages.find(s => s.name === this.selectedStageName());
-    return stage ? stage.label : '';
-  }
-
-  getSelectedStageRunningDescription(): string {
-    switch (this.selectedStageName()) {
-      case 'CLAIM_EXTRACTION':
-        return 'The Claim Extraction Agent (OpenCode) is currently scanning your research document markdown for quantitative evidence matrices. This can take a few minutes...';
-      case 'CODE_EXECUTION':
-        return 'The Code Execution Agent is configuring your docker isolation environment and installing project dependencies...';
-      case 'CLAIM_REPLICATION':
-        return 'Replication subagents are analyzing the research paper claims against the repository and executing verification scripts...';
-      case 'DTREG_GENERATION':
-        return 'Generating the final Loom DTREG JSON-LD metadata artifact with claim verification proofs...';
-      default:
-        return 'This stage execution is currently running inside the workspace sandbox.';
-    }
-  }
-
-  getSelectedStageCompletedDescription(): string {
-    switch (this.selectedStageName()) {
-      case 'CLAIM_EXTRACTION':
-        return 'Stage 2 Complete. Scientific quantitative claims have been extracted from the paper and linked to the sandbox environment.';
-      case 'CODE_EXECUTION':
-        return 'Stage 3 Complete. The repository execution environment was configured in Docker sandbox sbx-' + this.jobId() + ' successfully.';
-      case 'CLAIM_REPLICATION':
-        return 'Stage 4 Complete. All scientific claims have been verified and replicated against the linked source dataset.';
-      case 'DTREG_GENERATION':
-        return 'Stage 5 Complete. The Loom DTREG metadata artifact has been successfully generated and published.';
-      default:
-        return 'This stage has finished execution successfully.';
     }
   }
 }

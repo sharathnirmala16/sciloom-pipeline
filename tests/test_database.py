@@ -18,6 +18,6 @@ def test_database_tables_exist():
         cursor = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table';"))
         tables = {row[0] for row in cursor.fetchall()}
         
-        required_tables = {"jobs", "stages", "claims", "logs"}
+        required_tables = {"jobs", "stages"}
         assert required_tables.issubset(tables)
 

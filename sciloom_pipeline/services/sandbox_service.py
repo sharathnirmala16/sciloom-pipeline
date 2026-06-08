@@ -1,11 +1,13 @@
 import asyncio
 import json
 import logging
+import re
 from pathlib import Path
 from typing import Optional, Any
 from sciloom_pipeline.config import settings
 
 logger = logging.getLogger("sciloom.sandbox")
+
 
 class SandboxService:
     async def create_sandbox(self, job_id: str, repo_path: Path) -> str:
@@ -14,37 +16,28 @@ class SandboxService:
         sbx create opencode <repo_path> --name sbx-<job_id> [--cpus <cpus>] [--memory <memory>]
         Returns the sandbox name.
         """
-        sandbox_name = f"sbx-{job_id}"
-        
-        cmd = [
-            "sbx",
-            "create",
-            "opencode",
-            str(repo_path),
-            "--name",
-            sandbox_name
-        ]
-        
+        sandbox_name = re.sub(r"_", "-", f"sbx-{job_id}")
+
+        cmd = ["sbx", "create", "opencode", str(repo_path), "--name", sandbox_name]
+
         if settings.sandbox_memory_limit:
             cmd.extend(["--memory", settings.sandbox_memory_limit])
-            
+
         if settings.sandbox_cpus > 0:
             cmd.extend(["--cpus", str(settings.sandbox_cpus)])
-            
+
         logger.info(f"Creating sandbox {sandbox_name} with command: {' '.join(cmd)}")
-        
+
         process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             err_msg = stderr.decode(errors="replace").strip()
             logger.error(f"Failed to create sandbox {sandbox_name}: {err_msg}")
             raise RuntimeError(f"Failed to create sandbox: {err_msg}")
-            
+
         logger.info(f"Successfully created sandbox {sandbox_name}")
         return sandbox_name
 
@@ -53,21 +46,14 @@ class SandboxService:
         Copies a file or folder from the host into the sandbox:
         sbx cp <src> <sandbox_name>:<dst>
         """
-        cmd = [
-            "sbx",
-            "cp",
-            str(src),
-            f"{sandbox_name}:{dst}"
-        ]
+        cmd = ["sbx", "cp", str(src), f"{sandbox_name}:{dst}"]
         logger.info(f"Copying {src} to sandbox {sandbox_name}:{dst}")
-        
+
         process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             err_msg = stderr.decode(errors="replace").strip()
             logger.error(f"Failed to copy to sandbox {sandbox_name}: {err_msg}")
@@ -78,21 +64,14 @@ class SandboxService:
         Copies a file or folder from the sandbox to the host:
         sbx cp <sandbox_name>:<src> <dst>
         """
-        cmd = [
-            "sbx",
-            "cp",
-            f"{sandbox_name}:{src}",
-            str(dst)
-        ]
+        cmd = ["sbx", "cp", f"{sandbox_name}:{src}", str(dst)]
         logger.info(f"Copying from sandbox {sandbox_name}:{src} to host {dst}")
-        
+
         process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             err_msg = stderr.decode(errors="replace").strip()
             logger.error(f"Failed to copy from sandbox {sandbox_name}: {err_msg}")
@@ -103,27 +82,22 @@ class SandboxService:
         Executes a command inside the sandbox:
         sbx exec <sandbox_name> -- <command_list>
         """
-        cmd = [
-            "sbx",
-            "exec",
-            sandbox_name,
-            "--"
-        ] + command
-        
+        cmd = ["sbx", "exec", sandbox_name, "--"] + command
+
         logger.info(f"Executing in sandbox {sandbox_name}: {' '.join(cmd)}")
-        
+
         process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             err_msg = stderr.decode(errors="replace").strip()
-            logger.error(f"Command execution failed in sandbox {sandbox_name}: {err_msg}")
+            logger.error(
+                f"Command execution failed in sandbox {sandbox_name}: {err_msg}"
+            )
             raise RuntimeError(f"Command execution failed: {err_msg}")
-            
+
         return stdout.decode(errors="replace").strip()
 
     async def get_sandbox_status(self, sandbox_name: str) -> Optional[dict[str, Any]]:
@@ -132,19 +106,19 @@ class SandboxService:
         Returns the dictionary with sandbox metadata if found, else None.
         """
         cmd = ["sbx", "ls", "--json"]
-        
+
         try:
             process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
+                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
             )
             stdout, stderr = await process.communicate()
-            
+
             if process.returncode != 0:
-                logger.error(f"Failed to list sandboxes: {stderr.decode(errors='replace')}")
+                logger.error(
+                    f"Failed to list sandboxes: {stderr.decode(errors='replace')}"
+                )
                 return None
-                
+
             data = json.loads(stdout.decode(errors="replace"))
             sandboxes = data.get("sandboxes", [])
             for sbx in sandboxes:
@@ -162,14 +136,12 @@ class SandboxService:
         """
         cmd = ["sbx", "stop", sandbox_name]
         logger.info(f"Stopping sandbox {sandbox_name}")
-        
+
         process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             err_msg = stderr.decode(errors="replace").strip()
             logger.error(f"Failed to stop sandbox {sandbox_name}: {err_msg}")
@@ -182,17 +154,16 @@ class SandboxService:
         """
         cmd = ["sbx", "rm", sandbox_name, "--force"]
         logger.info(f"Removing sandbox {sandbox_name}")
-        
+
         process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
         stdout, stderr = await process.communicate()
-        
+
         if process.returncode != 0:
             err_msg = stderr.decode(errors="replace").strip()
             logger.error(f"Failed to remove sandbox {sandbox_name}: {err_msg}")
             raise RuntimeError(f"Failed to remove sandbox: {err_msg}")
+
 
 sandbox_service = SandboxService()

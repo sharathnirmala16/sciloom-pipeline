@@ -2,7 +2,7 @@ import { Component, input, output, signal, computed, inject, ChangeDetectionStra
 import { MarkdownComponent } from 'ngx-markdown';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
-import { JobService } from '../../services/job.service';
+import { JobService } from '../../../services/job.service';
 
 // PrimeNG
 import { ConfirmDialogModule } from 'primeng/confirmdialog';

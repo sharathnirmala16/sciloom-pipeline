@@ -1,7 +1,7 @@
 import json
 import asyncio
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -98,7 +98,7 @@ async def advance_stage(job_id: str, db: Session = Depends(get_db)):
             # We will enqueue next task if needed (Stage 2 claim extraction)
             if next_stage == "CLAIM_EXTRACTION":
                 # Check if job has user claims
-                claims = await job_service.get_claims_for_job(job_id, db=db)
+                claims = await job_service.get_claims_for_job(job_id)
                 user_claims = [c for c in claims if c["source"] == "user"]
                 if len(user_claims) > 0:
                     # User already supplied claims, we auto-complete Stage 2
@@ -133,6 +133,12 @@ async def advance_stage(job_id: str, db: Session = Depends(get_db)):
             elif next_stage == "CODE_EXECUTION":
                 queue_service.enqueue_job_task("code_execution", job_id)
                 await job_service.add_log(job_id, "INFO", "Enqueued Code Execution task for sandbox configuration...", db=db)
+            elif next_stage == "CLAIM_REPLICATION":
+                queue_service.enqueue_job_task("claim_replication", job_id)
+                await job_service.add_log(job_id, "INFO", "Enqueued Claim Replication task for verifying paper claims...", db=db)
+            elif next_stage == "DTREG_GENERATION":
+                queue_service.enqueue_job_task("dtreg_generation", job_id)
+                await job_service.add_log(job_id, "INFO", "Enqueued DTREG Generation task for metadata creation...", db=db)
 
         else:
             # All stages completed
@@ -186,12 +192,6 @@ async def retry_stage(job_id: str, db: Session = Depends(get_db)):
             stage_record.completed_at = None
             stage_record.updated_at = datetime.now(timezone.utc)
 
-        # Delete stage failed logs
-        db.query(models.Log).filter(
-            models.Log.job_id == job_id,
-            models.Log.message.like("Stage % failed%")
-        ).delete(synchronize_session=False)
-
         db.commit()
     except Exception as e:
         db.rollback()
@@ -206,8 +206,8 @@ async def retry_stage(job_id: str, db: Session = Depends(get_db)):
     return {"status": "success", "message": f"Stage {current_stage} queued for retry."}
 
 @router.get("/logs")
-async def stream_logs(job_id: str, db: Session = Depends(get_db)):
-    """Streams logs for a job in real-time using Server-Sent Events (SSE)."""
+async def stream_logs(job_id: str, request: Request, follow: bool = True, bulk: bool = False, db: Session = Depends(get_db)):
+    """Streams logs for a job. If follow is True, streams in real-time via SSE."""
     job = await job_service.get_job_by_id(job_id, db=db)
     if not job:
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found.")
@@ -215,14 +215,20 @@ async def stream_logs(job_id: str, db: Session = Depends(get_db)):
     async def log_generator():
         # 1. Fetch and stream all existing logs
         logs = await job_service.get_logs_for_job(job_id)
-        for log in logs:
-            data = {
-                "timestamp": log.get("timestamp"),
-                "level": log.get("level"),
-                "message": log.get("message")
-            }
-            yield f"data: {json.dumps(data)}\n\n"
+        if bulk:
+            yield f"data: {json.dumps({'is_history': True, 'logs': logs})}\n\n"
+        else:
+            for log in logs:
+                data = {
+                    "timestamp": log.get("timestamp"),
+                    "level": log.get("level"),
+                    "message": log.get("message")
+                }
+                yield f"data: {json.dumps(data)}\n\n"
         
+        if not follow:
+            return
+
         # 2. Stream new logs in real-time via in-memory queue notifications
         from sciloom_pipeline.services.queue_service import queue_service
         
@@ -230,8 +236,16 @@ async def stream_logs(job_id: str, db: Session = Depends(get_db)):
         queue_service.register_log_listener(job_id, queue)
         try:
             while True:
-                log_data = await queue.get()
-                yield f"data: {json.dumps(log_data)}\n\n"
+                if await request.is_disconnected():
+                    break
+                try:
+                    log_data = await asyncio.wait_for(queue.get(), timeout=1.0)
+                    if bulk:
+                        yield f"data: {json.dumps({'is_history': False, 'log': log_data})}\n\n"
+                    else:
+                        yield f"data: {json.dumps(log_data)}\n\n"
+                except asyncio.TimeoutError:
+                    continue
         except asyncio.CancelledError:
             # Client disconnected
             pass

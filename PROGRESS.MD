@@ -1,25 +1,37 @@
 # SciLoom Pipeline Project Progress & Handover Note
 
-## Stage 1, 2 & 3 Backend & UI Progress 🚀
+## Stage 1, 2, 3, 4 & 5 Backend & UI Progress 🚀
 
-All three initial stages of the SciLoom Pipeline are now fully implemented:
-*   **Stage 1 (Provisioning, OCR Extraction & Job Setup)**: Fully completed (UI + Backend).
-*   **Stage 2 (Claim Extraction)**: Fully completed (UI + Backend).
-*   **Stage 3 (Code Execution)**: Fully completed (UI + Backend).
+All five stages of the SciLoom Pipeline are now represented in the UI:
+*   **Stage 1 (Provisioning, OCR Extraction & Job Setup)**: Fully completed (Hierarchical UI Component + Backend).
+*   **Stage 2 (Claim Extraction)**: Fully completed (Hierarchical UI Component + Backend).
+*   **Stage 3 (Code Execution)**: Fully completed (Hierarchical UI Component + Backend).
+*   **Stage 4 (Claim Replication)**: UI Component implemented & integrated.
+*   **Stage 5 (DTREG Gen)**: UI Component implemented & integrated.
 
 ---
 
-## 🎨 Frontend UI Components (Implemented)
+## 🎨 Frontend UI Components & Hierarchical Refactoring (Implemented)
 
-All components are located in the [src/app/components](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components) directory:
+All components are located in the [src/app/components](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components) directory, structured hierarchically:
 - **`AppHeaderComponent`**: The shared top navigation bar and branding logo. See [app-header.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/app-header/app-header.component.ts).
 - **`DashboardComponent`**: Displays registered jobs with PrimeNG Tables, custom pagination, search filters, and statistics summaries. See [dashboard.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/dashboard/dashboard.component.ts) and [dashboard.component.html](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/dashboard/dashboard.component.html).
 - **`JobFormComponent`**: A Reactive form within a Modal Dialog for creating a new job. Handles validation of required inputs and file uploads. See [job-form.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-form/job-form.component.ts).
-- **`JobDetailsComponent`**: Main details dashboard displaying the 5-stage timeline, live log streaming feeds, and a tabbed details layout. Integrates an `isOcrRetrying` signal that seamlessly switches the view back to the streaming log terminal during a retry, hiding the initial progress bar. See [job-details.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/job-details.component.ts) and [job-details.component.html](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/job-details.component.html).
-- **`OCRPreviewComponent`**: Markdown viewer and editor for research papers. Includes page density grid, raw markdown editor, and OCR re-extraction controls. See [ocr-preview.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/ocr-preview/ocr-preview.component.ts).
-- **`FileExplorerComponent`**: Recursive file explorer for repository trees. See [file-explorer.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/file-explorer/file-explorer.component.ts).
-- **`ClaimsEditorComponent`**: Full-featured claims management UI for Stage 2 human-in-the-loop review. Features inline editing, claims additions/removals, and backend syncing. See [claims-editor.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/claims-editor/claims-editor.component.ts).
-- **`CodeExecutionComponent`**: Dedicated UI for Stage 3 Code Execution. Features a 4-state visual layout (pending, running with auto-scrolling logs terminal, completed with live workspace link, and failed with connection command copy controls and delete sandbox actions). See [code-execution.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/code-execution/code-execution.component.ts).
+- **`JobDetailsComponent`**: High-level parent coordinator dashboard displaying the 5-stage timeline and rendering the corresponding child stage component. See [job-details.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/job-details.component.ts) and [job-details.component.html](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/job-details.component.html).
+
+### Stage-Specific Child Components
+Nested directly under the `job-details/` folder structure:
+- **`StageProvisioningComponent`** (Stage 1): Renders workspace setup progress metrics, simulated orchestrator log stream, and contains nested workspace tabs for paper OCR markdown preview, file explorer, and claims list. See [stage-provisioning.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/stage-provisioning/stage-provisioning.component.ts).
+- **`StageClaimExtractionComponent`** (Stage 2): Manages claim extraction agent log stream and embeds the claims editor component upon successful completion. See [stage-claim-extraction.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/stage-claim-extraction/stage-claim-extraction.component.ts).
+- **`StageCodeExecutionComponent`** (Stage 3): dedicated UI for Stage 3 Code Execution. Features a 4-state visual layout (pending, running with auto-scrolling logs terminal, completed with live workspace link, and failed with connection command copy controls and delete sandbox actions). See [stage-code-execution.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/stage-code-execution/stage-code-execution.component.ts).
+- **`StageClaimReplicationComponent`** (Stage 4): Handles claim replication status, retries, and progression triggers. See [stage-claim-replication.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/stage-claim-replication/stage-claim-replication.component.ts).
+- **`StageDtregGenerationComponent`** (Stage 5): Renders Loom DTREG metadata json-ld generation state. See [stage-dtreg-generation.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/stage-dtreg-generation/stage-dtreg-generation.component.ts).
+
+### Inner Utility Components
+Nested directly under `job-details/` alongside their host components:
+- **`OCRPreviewComponent`**: Markdown viewer and editor for research papers. Includes page character counts density grid, raw markdown text area, and OCR re-extraction confirmation controls. See [ocr-preview.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/ocr-preview/ocr-preview.component.ts).
+- **`FileExplorerComponent`**: Recursive file explorer for repository trees. See [file-explorer.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/file-explorer/file-explorer.component.ts).
+- **`ClaimsEditorComponent`**: Full-featured claims management UI for Stage 2 human-in-the-loop review. Features inline editing, claims additions/removals, and backend syncing. See [claims-editor.component.ts](file:///home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/sciloom_ui/src/app/components/job-details/claims-editor/claims-editor.component.ts).
 
 ---
 
@@ -28,10 +40,11 @@ All components are located in the [src/app/components](file:///home/sharath/Docu
 ### Component Hierarchy
 ```
 JobDetailsComponent (parent)
-  └── ClaimsEditorComponent (child, embedded in CLAIM_EXTRACTION completed view)
+  └── StageClaimExtractionComponent (child)
+        └── ClaimsEditorComponent (inner child, embedded in completed view)
 ```
 
-### Stage 2 Views in `job-details.component.html`
+### Stage 2 Views in `stage-claim-extraction.component.ts`
 The `CLAIM_EXTRACTION` stage has dedicated views for all four pipeline states:
 - **Running**: Live SSE terminal with spinner, agent log stream, and "Return to Dashboard" link.
 - **Completed**: `<app-claims-editor>` with full edit/add/remove/save/advance capabilities.
@@ -45,7 +58,7 @@ The `CLAIM_EXTRACTION` stage has dedicated views for all four pipeline states:
 ### Component Hierarchy
 ```
 JobDetailsComponent (parent)
-  └── CodeExecutionComponent (child, embedded in CODE_EXECUTION view)
+  └── StageCodeExecutionComponent (child)
 ```
 
 ### How Stage 3 Works
@@ -140,3 +153,30 @@ Base URL: `http://localhost:8000/api`
   - The worker broadcasts log events directly to the memory queue in RAM, bypassing SQLite file queries or locking.
   - The SSE endpoint registers an `asyncio.Queue` and yields events in real-time. If the client disconnects, the queue is automatically unregistered.
   - This completely eliminated the `disk I/O error` and browser reconnect loop, making log streaming fast and reliable.
+
+- **OpenCode Agent Sandbox Configuration & Execution Fixes**:
+  - **Missing Agent definitions**: The sandbox runs in an isolated VM that only has access to the workspace directory. Because `.opencode` was at the project root rather than inside the job workspace, the agent failed to boot because it could not find its `code-execution-agent.md` configuration. This was resolved by copying the `.opencode/agents` folder to the job `REPO/.opencode/agents` folder during the Stage 1 provisioning phase.
+  - **Subcommand Parsing Crash**: The backend previously executed `sbx run <sandbox_name> -- --agent ...` which omitted the `run` subcommand. This caused `opencode` inside the container to fall back to the root server command, which rejected `--format json` and positional arguments, printing CLI help and exiting with code 1. Adding `run` immediately after the `--` separator resolved the parser error.
+  - **Subprocess Environment Keys**: Mapped the backend's `settings.gemini_api_key` to `GOOGLE_API_KEY` inside the custom environment variables when calling any agent process (`opencode run` and `sbx run`), resolving LLM authentication failures inside the sandbox.
+
+---
+
+## 💻 Troubleshooting: WSL 2 Docker Sandbox Workspace Mount Issue
+
+- **The Issue**: When running the pipeline from WSL 2 (Windows Subsystem for Linux), the sandbox container workspace `/home/agent/workspace` appears empty even though the container has successfully started. Commands or dependencies run by the agent inside the sandbox fail with file-not-found or permission errors.
+- **The Root Cause**: 
+  - The backend calls the `sbx` CLI. Because `/usr/local/bin/sbx` is a symlink pointing to the Windows executable `sbx.exe` on the host, WSL automatically translates Linux file paths (e.g. `/home/sharath/.../REPO`) to Windows UNC network paths (e.g. `\\wsl.localhost\Ubuntu-22.04\home\sharath\...`).
+  - When `sbx.exe` mounts this path inside the container, Docker Desktop mounts it under a literal Linux path matching the UNC name (e.g., `/wsl.localhost/Ubuntu-22.04/.../REPO`) instead of `/home/agent/workspace`. Because it is a mounted network share, standard tools inside the container cannot perform symlinking, dependency compilation, or socket connections without permission blocks.
+- **The Manual Workaround (WSL-only)**:
+  1. Bash into the running sandbox VM:
+     ```bash
+     sbx exec -it sbx-job-<job_id> bash
+     ```
+  2. Copy the files from the network mount to the native container workspace:
+     ```bash
+     cp -r /wsl.localhost/Ubuntu-22.04/home/sharath/Documents/LUH/sem_1/labor_ai_ready/sciloom-pipeline/jobs/job_<job_id>/REPO/. /home/agent/workspace
+     ```
+  3. Navigate to `/home/agent/workspace` and run build/run commands normally:
+     ```bash
+     cd /home/agent/workspace
+     ```

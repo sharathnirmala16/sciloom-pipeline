@@ -16,7 +16,7 @@ permission:
   websearch: allow
   task: allow
   todowrite: allow
-  skill: allow
+  skill: deny
 ---
 
 # System Prompt: Claim Replication Agent

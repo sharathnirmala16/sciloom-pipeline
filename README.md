@@ -6,24 +6,6 @@ By utilizing specialized OpenCode agents and local OCR processing, the pipeline 
 
 ---
 
-## Pipeline Overview
-
-```mermaid
-graph TD
-    A[Research Paper: PAPER.pdf] -->|pdf-to-markdown.py| B[Markdown Paper: PAPER.md]
-    B -->|claim-extraction-agent| C[Extracted Claims: CLAIMS.json]
-    
-    D[Target Repository] -->|code-execution-agent| E[Working Env & CODE_EXECUTION_SUCCESS.json]
-    
-    C & E -->|claim-replication-agent| F[Replication Scripts: replicate_CLAIM_*.py]
-    F -->|Run Scripts & Verify| G[Verified CLAIMS.json updated]
-    
-    G -->|dtreg-generation-agent| H[Serialization Script: generate_dtreg.py]
-    H -->|Execute dtreg| I[JSON-LD Loom Records: dtreg_output_CLAIM-*.jsonld]
-```
-
----
-
 ## Prerequisites & Installation
 
 Before running the pipeline, set up the base workspace environment to support the PDF-to-Markdown conversion script and OCR processing.

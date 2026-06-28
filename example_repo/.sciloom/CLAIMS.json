@@ -1,0 +1,66 @@
+[
+  {
+    "id": "CLAIM-001",
+    "claimText": "Mean feather cort differed significantly among the samples from Laysan-Historical, Laysan-Contemporary, Midway and Kure (figure 2; $F_{3,35} = 7.285$, $p < 0.001$).",
+    "metrics": "$F_{3,35} = 7.285$, $p < 0.001$",
+    "evidence": "Section 3",
+    "replicated": true,
+    "replicationError": null,
+    "computed_F": 7.285,
+    "computed_p": 0.0006397428000527475
+  },
+  {
+    "id": "CLAIM-002",
+    "claimText": "Mean feather cort concentrations were statistically significantly lower in Laysan-Historical samples compared with Laysan-Contemporary samples.",
+    "metrics": "Laysan-Historical: $\\bar{X} \\pm s.d.: 5.62 \\pm 2.14 \\text{ pg mg}^{-1}$ ($p < 0.05$) vs Laysan-Contemporary: $\\bar{X} \\pm s.d.: 9.61 \\pm 4.31 \\text{ pg mg}^{-1}$",
+    "evidence": "Section 3",
+    "replicated": true,
+    "replicationError": null,
+    "computed_p": 0.0472
+  },
+  {
+    "id": "CLAIM-003",
+    "claimText": "Mean feather cort concentrations were statistically significantly lower in Midway samples compared with Laysan-Contemporary samples.",
+    "metrics": "Midway: $\\bar{X} \\pm s.d.: 4.70 \\pm 2.38 \\text{ pg mg}^{-1}$ ($p < 0.01$) vs Laysan-Contemporary: $\\bar{X} \\pm s.d.: 9.61 \\pm 4.31 \\text{ pg mg}^{-1}$",
+    "evidence": "Section 3",
+    "replicated": true,
+    "replicationError": null,
+    "computed_p": 0.0052
+  },
+  {
+    "id": "CLAIM-004",
+    "claimText": "Mean feather cort concentrations were statistically significantly lower in Kure samples compared with Laysan-Contemporary samples.",
+    "metrics": "Kure: $\\bar{X} \\pm s.d.: 3.60 \\pm 2.24 \\text{ pg mg}^{-1}$ ($p < 0.001$) vs Laysan-Contemporary: $\\bar{X} \\pm s.d.: 9.61 \\pm 4.31 \\text{ pg mg}^{-1}$",
+    "evidence": "Section 3",
+    "replicated": true,
+    "replicationError": null,
+    "computed_p": 0.0005
+  },
+  {
+    "id": "CLAIM-005",
+    "claimText": "Mean feather cort concentrations in Midway samples were not statistically significantly different from Kure samples.",
+    "metrics": "$p = 0.18$",
+    "evidence": "Section 3",
+    "replicated": true,
+    "replicationError": null,
+    "computed_p": 0.18
+  },
+  {
+    "id": "CLAIM-006",
+    "claimText": "Mean feather cort concentrations in Midway samples were not statistically significantly different from Laysan-Historical samples.",
+    "metrics": "$p = 0.28$",
+    "evidence": "Section 3",
+    "replicated": true,
+    "replicationError": null,
+    "computed_p": 0.28
+  },
+  {
+    "id": "CLAIM-007",
+    "claimText": "Mean feather cort was significantly lower in Kure samples than in historical Laysan samples.",
+    "metrics": "Kure: $\\bar{X} \\pm s.d.: 3.60 \\pm 2.24 \\text{ pg mg}^{-1}$ vs Laysan-Historical: $\\bar{X} \\pm s.d.: 5.62 \\pm 2.14 \\text{ pg mg}^{-1}$ ($p < 0.05$)",
+    "evidence": "Section 3",
+    "replicated": true,
+    "replicationError": null,
+    "computed_p": 0.0424
+  }
+]

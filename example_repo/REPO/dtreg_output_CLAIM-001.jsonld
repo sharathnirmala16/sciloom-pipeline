@@ -1,0 +1,158 @@
+{
+  "@id": "_:n1",
+  "@type": "doi:feeb33ad3e4440682a4d",
+  "doi:feeb33ad3e4440682a4d#label": "Replication of CLAIM-001: Mean feather cort differed significantly among the samples from Laysan-Historical, Laysan-Contemporary, Midway and Kure (figure 2; $F_{3,35} = 7.285$, $p < 0.001$).",
+  "doi:feeb33ad3e4440682a4d#has_part": {
+    "@id": "_:n2",
+    "@type": "doi:b9335ce2c99ed87735a6",
+    "doi:b9335ce2c99ed87735a6#label": "One-way ANOVA on log-transformed feather corticosterone across 4 island groups",
+    "doi:b9335ce2c99ed87735a6#executes": {
+      "@id": "_:n3",
+      "@type": "doi:abef9f1c0d48853f3e51",
+      "doi:abef9f1c0d48853f3e51#label": "ols + anova_lm (One-way ANOVA)",
+      "doi:abef9f1c0d48853f3e51#part_of": {
+        "@id": "_:n4",
+        "@type": "doi:4b99260369df9110f9bd",
+        "doi:4b99260369df9110f9bd#label": "statsmodels + scipy",
+        "doi:4b99260369df9110f9bd#version_info": "statsmodels 0.14.6, scipy 1.18.0",
+        "doi:4b99260369df9110f9bd#part_of": {
+          "@id": "_:n5",
+          "@type": "doi:c981d125d1a564c9f573",
+          "doi:c981d125d1a564c9f573#label": "Python",
+          "doi:c981d125d1a564c9f573#version_info": "3.12.10"
+        }
+      },
+      "doi:abef9f1c0d48853f3e51#is_implemented_by": "ols('log_cort ~ C(Group)', data=df).fit(); anova_lm(model, typ=1)"
+    },
+    "doi:b9335ce2c99ed87735a6#targets": [
+      {
+        "@id": "_:n6",
+        "@type": "doi:cceac5fb8acf5ade2bf5",
+        "doi:cceac5fb8acf5ade2bf5#label": "Laysan-Historical"
+      },
+      {
+        "@id": "_:n7",
+        "@type": "doi:cceac5fb8acf5ade2bf5",
+        "doi:cceac5fb8acf5ade2bf5#label": "Laysan-Contemporary"
+      },
+      {
+        "@id": "_:n8",
+        "@type": "doi:cceac5fb8acf5ade2bf5",
+        "doi:cceac5fb8acf5ade2bf5#label": "Midway"
+      },
+      {
+        "@id": "_:n9",
+        "@type": "doi:cceac5fb8acf5ade2bf5",
+        "doi:cceac5fb8acf5ade2bf5#label": "Kure"
+      }
+    ],
+    "doi:b9335ce2c99ed87735a6#has_input": {
+      "@id": "_:n10",
+      "@type": "doi:aff130c76e68ead3862e",
+      "doi:aff130c76e68ead3862e#label": "Feather corticosterone data for CLAIM-001",
+      "doi:aff130c76e68ead3862e#source_table": {
+        "@type": "doi:0424f6e7026fa4bc2c4a",
+        "tab_label": "Table",
+        "columns": [],
+        "rows": [],
+        "@id": "_:n11"
+      },
+      "doi:aff130c76e68ead3862e#comment": "Source: Table_S1 feather corticosterone CSV (see source_url)"
+    },
+    "doi:b9335ce2c99ed87735a6#has_output": {
+      "@id": "_:n12",
+      "@type": "doi:aff130c76e68ead3862e",
+      "doi:aff130c76e68ead3862e#label": "Statistical results for CLAIM-001",
+      "doi:aff130c76e68ead3862e#source_table": {
+        "@type": "doi:0424f6e7026fa4bc2c4a",
+        "tab_label": "Table",
+        "columns": [
+          {
+            "@type": "doi:65ba00e95e60fb8971e6",
+            "col_number": 1,
+            "col_titles": "test",
+            "@id": "_:n13"
+          },
+          {
+            "@type": "doi:65ba00e95e60fb8971e6",
+            "col_number": 2,
+            "col_titles": "F_statistic",
+            "@id": "_:n14"
+          },
+          {
+            "@type": "doi:65ba00e95e60fb8971e6",
+            "col_number": 3,
+            "col_titles": "df_between",
+            "@id": "_:n15"
+          },
+          {
+            "@type": "doi:65ba00e95e60fb8971e6",
+            "col_number": 4,
+            "col_titles": "df_within",
+            "@id": "_:n16"
+          },
+          {
+            "@type": "doi:65ba00e95e60fb8971e6",
+            "col_number": 5,
+            "col_titles": "p_value",
+            "@id": "_:n17"
+          }
+        ],
+        "rows": [
+          {
+            "@type": "doi:9bf7a8e8909bfd491b38",
+            "row_number": 1,
+            "row_titles": "0",
+            "@id": "_:n18",
+            "cells": [
+              {
+                "@type": "doi:4607bc7c42ac8db29bfc",
+                "@id": "_:n19",
+                "value": "One-way ANOVA",
+                "column": "_:n13"
+              },
+              {
+                "@type": "doi:4607bc7c42ac8db29bfc",
+                "@id": "_:n20",
+                "value": "7.285",
+                "column": "_:n14"
+              },
+              {
+                "@type": "doi:4607bc7c42ac8db29bfc",
+                "@id": "_:n21",
+                "value": "3",
+                "column": "_:n15"
+              },
+              {
+                "@type": "doi:4607bc7c42ac8db29bfc",
+                "@id": "_:n22",
+                "value": "35",
+                "column": "_:n16"
+              },
+              {
+                "@type": "doi:4607bc7c42ac8db29bfc",
+                "@id": "_:n23",
+                "value": "0.000639743",
+                "column": "_:n17"
+              }
+            ]
+          }
+        ],
+        "@id": "_:n24"
+      }
+    }
+  },
+  "@context": {
+    "doi": "https://doi.org/21.T11969/",
+    "columns": "https://doi.org/21.T11969/0424f6e7026fa4bc2c4a#columns",
+    "col_number": "https://doi.org/21.T11969/65ba00e95e60fb8971e6#number",
+    "col_titles": "https://doi.org/21.T11969/65ba00e95e60fb8971e6#titles",
+    "rows": "https://doi.org/21.T11969/0424f6e7026fa4bc2c4a#rows",
+    "row_number": "https://doi.org/21.T11969/9bf7a8e8909bfd491b38#number",
+    "row_titles": "https://doi.org/21.T11969/9bf7a8e8909bfd491b38#titles",
+    "cells": "https://doi.org/21.T11969/9bf7a8e8909bfd491b38#cells",
+    "column": "https://doi.org/21.T11969/4607bc7c42ac8db29bfc#column",
+    "value": "https://doi.org/21.T11969/4607bc7c42ac8db29bfc#value",
+    "tab_label": "https://doi.org/21.T11969/0424f6e7026fa4bc2c4a#label"
+  }
+}

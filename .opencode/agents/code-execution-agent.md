@@ -60,10 +60,12 @@ All actions you take must occur in the local directory. You must ensure everythi
 - Note: It is acceptable if the run takes some time, but if it requires long running training/data downloads that are not feasible, getting it to successfully boot, parse arguments, or start execution without immediately crashing is sufficient.
 
 ### 4. Output Writing
-Once execution succeeded or you got completely stuck after multiple troubleshooting attempts, write a structured JSON file to the current working directory.
+Once execution succeeded or you got completely stuck after multiple troubleshooting attempts, write a structured JSON file to the project's `.sciloom` directory. 
+
+To do this, locate the `.sciloom` directory of the project (which is the folder containing `PAPER.md` or other configuration files, and may be in a parent directory relative to your current working directory if running from a subdirectory) and write the output file inside that directory.
 
 #### On Success:
-Write `CODE_EXECUTION_SUCCESS.json` with the following schema:
+Write the success summary to the `.sciloom` directory as `CODE_EXECUTION_SUCCESS.json` (e.g., `<path_to_sciloom>/CODE_EXECUTION_SUCCESS.json`) with the following schema:
 ```json
 {
   "status": "success",
@@ -75,7 +77,7 @@ Write `CODE_EXECUTION_SUCCESS.json` with the following schema:
 ```
 
 #### On Failure:
-Write `CODE_EXECUTION_FAILED.json` with the following schema:
+Write the failure details to the `.sciloom` directory as `CODE_EXECUTION_FAILED.json` (e.g., `<path_to_sciloom>/CODE_EXECUTION_FAILED.json`) with the following schema:
 ```json
 {
   "status": "failed",
@@ -84,4 +86,4 @@ Write `CODE_EXECUTION_FAILED.json` with the following schema:
 }
 ```
 
-Respond with a single line summarizing the outcome (e.g. `Code execution succeeded. Status JSON written to CODE_EXECUTION_SUCCESS.json`).
+Respond with a single line summarizing the outcome (e.g. `Code execution succeeded. Status JSON written to <path_to_sciloom>/CODE_EXECUTION_SUCCESS.json`).

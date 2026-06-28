@@ -1,0 +1,15 @@
+Variable Name,Description
+Sample_ID,"Created to identify and track individual samples during extraction, assay, and analysis at Tufts"
+Log_Num,ID given by the institution from which the sample came
+Location_General,Island from which the sample came
+Location_Detail,Specific details related to where the specimen was found; written as provided by the source institution. Provided as geographic coordinates or names of sites around the islands.  EIMA = Eastern Island Management Area. SIMA = Sand Island Management Area. NR = Not Recorded
+Museum,Is the sample from a museum specimen? Y = Yes. N = No.
+Source,Which institution provided the sample?
+Date_Collected,When was the specimen collected?
+Sex,"Sex of the specimen, if known. M = Male. F = Female. U = Unknown."
+Age,Age of the specimen if known. HY = Hatch year. AHY = After hatch year.
+Feather_Type,Is the feather sample a flight or body feather?
+Length_mm,Length of the feather sample analyzed
+Mass_mg,Mass of the feather sample analyzed
+CALC_CONC_SAMPLE_pg.mg,Concentration of corticosterone in the sample in pg/mg
+CALC_CONC_SAMPLE_pg.mm,Concentration of corticosterone in the sample in pg/mm
